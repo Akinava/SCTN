@@ -23,7 +23,7 @@ class Handler:
 
 if __name__ == "__main__":
     print('start test')
-    server = host.UDPHost(Handler)
+    server = host.UDPHost(host='', port=10002, handler=Handler)
     try:
         server.start()
     except KeyboardInterrupt:
