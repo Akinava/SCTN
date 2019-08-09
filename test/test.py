@@ -18,7 +18,15 @@ import host
 
 
 class Handler:
-    pass
+    def __init__(self, connection, data):
+        self.connection = connection
+        self.data = data
+
+    def handle(self):
+        client_msg = "Message from Client:{}".format(self.data.decode('utf8'))
+        client_connection  = "Client IP Address:{}".format(self.connection)
+        print(client_msg)
+        print(client_connection)
 
 
 if __name__ == "__main__":
@@ -27,5 +35,4 @@ if __name__ == "__main__":
     try:
         server.start()
     except KeyboardInterrupt:
-        server.stop()
-    print('end test')
+        print('end test')

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import socket
+import errno
 
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
@@ -15,33 +16,62 @@ class UDPHost:
         self.handler = handler
         self.peers = []
         self.buffer_size = 1024
+        self.make_socket()
+
+    def make_socket(self):
+        self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+    def bind_socket(self):
+        try:
+            self.socket.bind((self.host, self.port))
+        except socket.error as e:
+            if e.errno == errno.EADDRINUSE:
+                print('Error: port {} is already in use'.format(self.port))
+                self.port += 1
+                self.bind_socket()
 
     def start(self):
-        UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        UDPServerSocket.bind(('', self.port))
-        # make socket
-        # send broadcast
-        while(True):
-            data, addr = UDPServerSocket.recvfrom(self.buffer_size)
-            clientMsg = "Message from Client:{}".format(data)
-            clientIP  = "Client IP Address:{}".format(addr)
-            print(clientMsg)
-            print(clientIP)
+        self.bind_socket()
+        print('Info: run server on {} port'.format(self.port))
 
-            # Sending a reply to client
-            #UDPServerSocket.sendto(bytesToSend, address)
+        # FIXME broadcast
+        self.send_broadcast()
 
-    def stop(self):
-        pass
+        while True:
+            data, connection = self.socket.recvfrom(self.buffer_size)
+            self.handle_request(data, connection)
+
+    def handle_request(self, data, connection):
+        if data == b'confurm':
+            print('Info: get confurm from {}'.format(connection))
+            return
+
+        # FIXME broadcast
+        if b'Broadcast message.' in data:
+            host = connection[0]
+            port = int(data.decode('utf8').split(' ')[-1])
+            print('Info: add server ({}:{})'.format(host, port))
+            self.peers.append((host, port))
+            # send peers info for other nebors
+            return
+
+        self.handler(connection, data).handle()
+        self.socket.sendto(b'confurm', connection)
+
+    def __del__(self):
+        self.socket.close()
 
     def send_broadcast(self):
-        pass
+        broadcast_connection = ('255.255.255.255', self.port-1)
+        broadcast_message = 'Broadcast message. Server in a port {}'.format(self.port)
+        br_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        br_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        br_socket.sendto(broadcast_message.encode('utf8'), broadcast_connection)
+        br_socket.close()
 
-    def send(self, msg):
-        UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        UDPClientSocket.sendto(msg, (self.host, self.port))
-        #data = UDPClientSocket.recvfrom(self.buffer_size)
-        #msg = "Message from Server {}".format(data[0])
+    def send(self, connection, msg):
+        self.socket.sendto(msg, connection)
 
-        #print(msg)
+    def recived(self):
+        data, addr = self.socket.recvfrom(self.buffer_size)
 
