@@ -1,0 +1,8 @@
+UDPHost:
+no needs in / broadcust
+share new peer with other
+app/daemon mode
+check connection and make attempt to reconnect
+recive data/send data in list
+check if message is dublicate / handler
+check flag recived / if not try again several times if not / try to reconnect / if not remove host from live hosts list 

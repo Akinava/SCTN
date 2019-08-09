@@ -31,6 +31,7 @@ class UDPHost:
                 self.bind_socket()
 
     def start(self):
+        # TODO check peers list
         self.bind_socket()
         print('Info: run server on {} port'.format(self.port))
 
@@ -59,6 +60,7 @@ class UDPHost:
         self.socket.sendto(b'confurm', connection)
 
     def __del__(self):
+        # save peers list
         self.socket.close()
 
     def send_broadcast(self):
