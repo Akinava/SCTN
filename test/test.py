@@ -29,7 +29,14 @@ class Handler:
         print(client_connection)
 
 
+class Main:
+    pass
+
+
 if __name__ == "__main__":
+    # server = UDMPost()
+    # app =  Main(host=server)
+    #
     print('start test')
     server = host.UDPHost(host='', port=10002, handler=Handler)
     try:

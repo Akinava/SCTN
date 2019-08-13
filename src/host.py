@@ -9,6 +9,9 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
+# TODO
+# check fragmentation IP_DONTFRAGMENT
+
 class UDPHost:
     def __init__(self, host, port, handler):
         self.port = port
