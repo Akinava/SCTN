@@ -12,14 +12,27 @@ __version__ = [0, 0]
 # TODO
 # check fragmentation IP_DONTFRAGMENT
 
+
 class UDPHost:
+    max_connection_by_peer = 2
+    max_peers = 20
+    buffer_size = 1024
+
     def __init__(self, host, port, handler):
         self.port = port
         self.host = host
         self.handler = handler
-        self.peers = []
-        self.buffer_size = 1024
-        self.make_socket()
+        self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
+        self.connect()
+
+    def connect(self):
+        self.poll_hosts_by_list()
+        self.find_hosts_by_broadcast()
+        self.call_signal_server()
+
+    def find_hosts_by_broadcast(self)
+        self.rise_server()
+        self.send_broadcast()
 
     def make_socket(self):
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -33,13 +46,9 @@ class UDPHost:
                 self.port += 1
                 self.bind_socket()
 
-    def start(self):
-        # TODO check peers list
+    def rize_server(self):
         self.bind_socket()
         print('Info: run server on {} port'.format(self.port))
-
-        # FIXME broadcast
-        self.send_broadcast()
 
         while True:
             data, connection = self.socket.recvfrom(self.buffer_size)
@@ -59,7 +68,7 @@ class UDPHost:
             # send peers info for other nebors
             return
 
-        self.handler(connection, data).handle()
+        self.handler.handle_network_event(connection, data)
         self.socket.sendto(b'confurm', connection)
 
     def __del__(self):
@@ -67,6 +76,7 @@ class UDPHost:
         self.socket.close()
 
     def send_broadcast(self):
+        # FIXME
         broadcast_connection = ('255.255.255.255', self.port-1)
         broadcast_message = 'Broadcast message. Server in a port {}'.format(self.port)
         br_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)

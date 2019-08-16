@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import threading
+import random
+import time
 
 
 __author__ = 'Akinava'
@@ -16,7 +19,7 @@ src_dir = os.path.join(test_dir, '../src')
 sys.path.append(src_dir)
 import host
 
-
+'''
 class Handler:
     def __init__(self, connection, data):
         self.connection = connection
@@ -27,19 +30,37 @@ class Handler:
         client_connection  = "Client IP Address:{}".format(self.connection)
         print(client_msg)
         print(client_connection)
+'''
 
+class MainThread:
+    def __init__(self, network):
+        self.network = network
 
-class Main:
-    pass
+    def run(self):
+        server = host.UDPHost(host='', port=10002, handler=self)
+
+    def event_generator(self):
+        time.sleep(random.randint(5, 10))
+        event_msg = self.message_generator()
+        # encrypt messages
+        # put messages in queue
+        # send messages
+
+    def handle_network_event(self, connection, data):
+        pass
+
+    def message_generator(self):
+        msg = 'bla'
+        msg *= random.randint(1, 5)
+        msg += random.choice(['.', '!', '?'])
+        return msg.encode('utf8')
 
 
 if __name__ == "__main__":
-    # server = UDMPost()
-    # app =  Main(host=server)
-    #
     print('start test')
-    server = host.UDPHost(host='', port=10002, handler=Handler)
+    app = MainThread(network=host.UDPHost)
     try:
-        server.start()
+        app.run()
     except KeyboardInterrupt:
         print('end test')
+    # app is main app logic / react on event add tasks to server /
