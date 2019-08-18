@@ -18,10 +18,11 @@ class UDPHost:
     max_peers = 20
     buffer_size = 1024
 
-    def __init__(self, host, port, handler):
+    def __init__(self, host, port, handler, cipher=None):
         self.port = port
         self.host = host
         self.handler = handler
+        self.cipher = cipher # encrypt/decrypt
         self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
         self.connect()
 
