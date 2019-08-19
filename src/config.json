@@ -1,0 +1,7 @@
+{
+  "hosts_file": "src/hosts.json",
+  "port": 10002,
+  "maximum_connection_by_peer": 2,
+  "maximum_peers_connections": 20,
+  "buffer_size": 1024
+}

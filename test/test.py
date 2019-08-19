@@ -7,6 +7,7 @@ import random
 import time
 import socket
 import json
+import ctypes
 
 
 __author__ = 'Akinava'
@@ -22,6 +23,7 @@ sys.path.append(src_dir)
 import host
 import sstn
 import pycrypto
+import settings
 
 '''
 class Handler:
@@ -62,37 +64,43 @@ class MainThread:
 '''
 
 def rize_server(port, handler):
-    server = host.UDPHost(host='', port=port, handler=handler)
-    server_tread = threading.Thread(target = server.rize_server)
-    server_tread.start()
-    return server
+    server = host.UDPHost(handler=handler, host='', port=port)
+    server_thread = threading.Thread(target = server.rize_server)
+    server_thread.start()
+    return server, server_thread
+
+
+def rm_hosts():
+    if os.path.isfile(settings.hosts_file):
+        os.remove(settings.hosts_file)
 
 
 def save_host(ip, port, fingerprint, signal_server=False):
-    hosts_file_json = 'src/hosts.json'
-    hosts_info = {}
-    if os.path.isfile(hosts_file_json):
-        with open(hosts_file_json, 'r') as hosts_file:
-            try:
-                hosts_info = json.loads(hosts_file.read())
-            except json.decoder.JSONDecodeError:
-                pass
-    with open(hosts_file_json, 'w') as hosts_file:
-        hosts_info.update(
+    settings.hosts.update(
             {pycrypto.B58().pack(fingerprint):
                 {'ip': ip, 'port': port, 'signal': signal_server}})
-        hosts_file.write(json.dumps(hosts_info, indent=2))
+    settings.save_hosts()
+
+
+def stop_thread(server_thread):
+    server_thread._tstate_lock = None
+    server_thread._stop()
 
 
 if __name__ == "__main__":
     print('start test')
+    # rm hosts file
+    rm_hosts()
     # run SS0
     signal_server_0_port = 10002
-    signal_server_0 = rize_server(signal_server_0_port, sstn.SignalServerHandler)
-    fingerprint_signal_server_0 = signal_server_0.get_fingerprint()
+    signal_server_0, ss_0_thread = rize_server(signal_server_0_port, sstn.SignalServerHandler)
 
     # save hash to hosts
-    save_host(socket.gethostbyname(socket.gethostname()), signal_server_0_port, fingerprint_signal_server_0, True)
+    save_host(
+        socket.gethostbyname(socket.gethostname()),
+        signal_server_0_port,
+        signal_server_0.get_fingerprint(),
+        True)
 
     # run NP0
     # check connect
@@ -101,7 +109,8 @@ if __name__ == "__main__":
     # run SS1
     try:
         while True:
-            time.sleep(10)
+            time.sleep(5)
     except KeyboardInterrupt:
-        print('end test')
-    # app is main app logic / react on event add tasks to server /
+        stop_thread(ss_0_thread)
+
+    print('end test')

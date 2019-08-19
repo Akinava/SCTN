@@ -2,6 +2,7 @@
 import select
 import socket
 import errno
+import settings
 
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
@@ -15,11 +16,7 @@ __version__ = [0, 0]
 
 
 class UDPHost:
-    max_connection_by_peer = 2
-    max_peers = 200
-    buffer_size = 1024
-
-    def __init__(self, host, port, handler):
+    def __init__(self, handler, host, port=settings.port):
         self.port = port
         self.host = host
         self.handler = handler(self)
@@ -43,6 +40,7 @@ class UDPHost:
     def bind_socket(self):
         try:
             self.socket.bind((self.host, self.port))
+            self._socket_is_bound = True
         except socket.error as e:
             if e.errno == errno.EADDRINUSE:
                 print('Error: port {} is already in use'.format(self.port))
@@ -62,11 +60,9 @@ class UDPHost:
             #for fileno, event in events:
             #    print ('event', fileno, event)
 
-
-
-
-            data, connection = self.socket.recvfrom(self.buffer_size)
+            data, connection = self.socket.recvfrom(settings.buffer_size)
             self.handler.handle_request(data, connection)
+            print (self.__run)
 
     #def handle_request(self, data, connection):
     #    if data == b'confurm':
@@ -102,6 +98,7 @@ class UDPHost:
     def send(self, connection, msg):
         self.socket.sendto(msg, connection)
 
+    # FIXME could be this function needed only for test
     def get_fingerprint(self):
         return self.handler.get_fingerprint()
 
