@@ -25,49 +25,17 @@ import sstn
 import pycrypto
 import settings
 
-'''
-class Handler:
-    def __init__(self, connection, data):
-        self.connection = connection
-        self.data = data
 
-    def handle(self):
-        client_msg = "Message from Client:{}".format(self.data.decode('utf8'))
-        client_connection  = "Client IP Address:{}".format(self.connection)
-        print(client_msg)
-        print(client_connection)
-'''
+class Handler(sstn.SignalClientHandler):
+    pass
 
-'''
-class MainThread:
-    def __init__(self, network):
-        self.network = network
 
-    def run(self):
-        server = host.UDPHost(host='', port=10002, handler=self)
-
-    def event_generator(self):
-        time.sleep(random.randint(5, 10))
-        event_msg = self.message_generator()
-        # encrypt messages
-        # put messages in queue
-        # send messages
-
-    def handle_network_event(self, connection, data):
-        pass
-
-    def message_generator(self):
-        msg = 'bla'
-        msg *= random.randint(1, 5)
-        msg += random.choice(['.', '!', '?'])
-        return msg.encode('utf8')
-'''
-
-def rize_server(port, handler):
-    server = host.UDPHost(handler=handler, host='', port=port)
-    server_thread = threading.Thread(target = server.rize_server)
-    server_thread.start()
-    return server, server_thread
+def rize_peer(port, handler, run_function):
+    peer = host.UDPHost(handler=handler, host='', port=port)
+    target = getattr(peer, run_function)
+    peer_thread = threading.Thread(target = target)
+    peer_thread.start()
+    return peer, peer_thread
 
 
 def rm_hosts():
@@ -93,7 +61,7 @@ if __name__ == "__main__":
     rm_hosts()
     # run SS0
     signal_server_0_port = 10002
-    signal_server_0, ss_0_thread = rize_server(signal_server_0_port, sstn.SignalServerHandler)
+    signal_server_0, ss_0_thread = rize_peer(signal_server_0_port, sstn.SignalServerHandler, 'rize_server')
 
     # save hash to hosts
     save_host(
@@ -103,6 +71,9 @@ if __name__ == "__main__":
         True)
 
     # run NP0
+    peer_0, peer_0_thread = rize_peer(10003, Handler, 'rize_client')
+
+
     # check connect
     # run NP1
     # connect NP1 to SS0
@@ -112,5 +83,6 @@ if __name__ == "__main__":
             time.sleep(5)
     except KeyboardInterrupt:
         stop_thread(ss_0_thread)
+        stop_thread(peer_0_thread)
 
     print('end test')

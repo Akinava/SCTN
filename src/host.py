@@ -19,23 +19,11 @@ class UDPHost:
     def __init__(self, handler, host, port=settings.port):
         self.port = port
         self.host = host
-        self.handler = handler(self)
+        self.__handler = handler(self)
         self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
-        #self.connect()
-
-    #def connect(self):
-    #    self.poll_hosts_by_list()
-    #    self.find_hosts_by_broadcast()
-    #    self.call_signal_server()
-
-    #def find_hosts_by_broadcast(self)
-    #    self.rise_server()
-    #    self.send_broadcast()
 
     def make_socket(self):
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        #self.socket.listen(self.max_peers)
-        #self.socket.setblocking(0)
 
     def bind_socket(self):
         try:
@@ -50,58 +38,54 @@ class UDPHost:
     def rize_server(self):
         self.make_socket()
         self.bind_socket()
-        #self.epoll = select.epoll()
-        #self.epoll.register(self.socket.fileno(), select.EPOLLIN | select.EPOLLET)
         print('Info: run server on {} port'.format(self.port))
+        self.__keep_connect = True
+        self.recvfrom()
 
-        while True:
-            #events = epoll.poll(1)
-
-            #for fileno, event in events:
-            #    print ('event', fileno, event)
-
+    def recvfrom(self):
+        while self.__keep_connect:
             data, connection = self.socket.recvfrom(settings.buffer_size)
-            self.handler.handle_request(data, connection)
-            print (self.__run)
+            self.__handler.handle_request(data, connection)
 
-    #def handle_request(self, data, connection):
-    #    if data == b'confurm':
-    #        print('Info: get confurm from {}'.format(connection))
-    #        return
+    def get_ip(self):
+        if not hasattr(self, 'ip'):
+            self.ip = socket.gethostbyname(socket.gethostname())
+        return self.ip
 
-    #    # FIXME broadcast
-    #    if b'Broadcast message.' in data:
-    #        host = connection[0]
-    #        port = int(data.decode('utf8').split(' ')[-1])
-    #        print('Info: add server ({}:{})'.format(host, port))
-    #        self.peers.append((host, port))
-    #        # send peers info for other nebors
-    #        return
+    def get_port(self):
+        return self.port
 
-    #    self.handler.handle_network_event(connection, data)
-    #    self.socket.sendto(b'confurm', connection)
-
-    def __del__(self):
-        # save peers list
-        #self.epoll.close()
+    def close(self):
+        self.__keep_connect = False
         self.socket.close()
 
-    #def send_broadcast(self):
-    #    # FIXME
-    #    broadcast_connection = ('255.255.255.255', self.port-1)
-    #    broadcast_message = 'Broadcast message. Server in a port {}'.format(self.port)
-    #    br_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    #    br_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    #    br_socket.sendto(broadcast_message.encode('utf8'), broadcast_connection)
-    #    br_socket.close()
+    def __del__(self):
+        self.close()
+        # save peers list
 
-    def send(self, connection, msg):
+    def get_sstn_peer_list_from_settings(self):
+        sstn_peer_list = {}
+        for peer in settings.hosts:
+            if self.__peer_itself(settings.hosts[peer]) or \
+               not settings.hosts[peer].get('signal') is True:
+                continue
+            sstn_peer_list[peer] = settings.hosts[peer]
+        return sstn_peer_list
+
+    def __peer_itself(self, peer):
+        if self.get_ip() == peer['ip'] and \
+           self.get_port() == peer['port']:
+            return True
+        return False
+
+    def send(self, msg, connection):
         self.socket.sendto(msg, connection)
 
     # FIXME could be this function needed only for test
     def get_fingerprint(self):
-        return self.handler.get_fingerprint()
+        return self.__handler.get_fingerprint()
 
-    #def recived(self):
-    #    data, addr = self.socket.recvfrom(self.buffer_size)
-
+    def rize_client(self):
+        self.make_socket()
+        self.__keep_connect = True
+        self.__handler.request_swarm_peers()
