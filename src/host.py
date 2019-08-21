@@ -2,6 +2,9 @@
 import select
 import socket
 import errno
+import threading
+import time
+
 import settings
 
 __author__ = 'Akinava'
@@ -16,11 +19,16 @@ __version__ = [0, 0]
 
 
 class UDPHost:
+    socket_host = 0
+    socket_port = 1
+
     def __init__(self, handler, host, port=settings.port):
         self.port = port
         self.host = host
         self.__handler = handler(self)
         self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
+        self.__rize_peer()
+        self.__tread_check_alive_peers()
 
     def make_socket(self):
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -35,17 +43,36 @@ class UDPHost:
                 self.port += 1
                 self.bind_socket()
 
-    def rize_server(self):
+    def __rize_peer(self):
         self.make_socket()
         self.bind_socket()
-        print('Info: run server on {} port'.format(self.port))
-        self.__keep_connect = True
-        self.recvfrom()
+        self.__start_listener_tread()
+        print('peer run on {} port'.format(self.port))
 
-    def recvfrom(self):
-        while self.__keep_connect:
+    def __start_listener_tread(self):
+        #self.__keep_connect = True
+        self.__listener_tread = threading.Thread(target = self.__listener)
+        self.__listener_tread.start()
+
+    def __listener(self):
+        #while self.__keep_connect:
+        while True:
             data, connection = self.socket.recvfrom(settings.buffer_size)
+            self.__update_peer_timeout(connection)
             self.__handler.handle_request(data, connection)
+            '''
+            try:
+                self.socket.settimeout(settings.peer_timeout)
+                data, connection = self.socket.recvfrom(settings.buffer_size)
+                self.__update_peer_timeout(connection)
+                self.__handler.handle_request(data, connection)
+            except socket.timeout:
+                self.__keep_connect = False
+                # TODO ???
+            '''
+
+    def __update_peer_timeout(self, connection):
+        self.peers[connection] = time.time()
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -53,14 +80,19 @@ class UDPHost:
         return self.ip
 
     def get_port(self):
-        return self.port
+        return self.socket.getsockname()[self.socket_port]
 
-    def close(self):
-        self.__keep_connect = False
+    def stop(self):
+        #self.__keep_connect = False
         self.socket.close()
+        self.__handler.close()
+        self.__listener_tread._tstate_lock = None
+        self.__listener_tread._stop()
+        self.__check_alive_peers_thread._tstate_lock = None
+        self.__check_alive_peers_thread._stop()
 
     def __del__(self):
-        self.close()
+        self.stop()
         # save peers list
 
     def get_sstn_peer_list_from_settings(self):
@@ -86,6 +118,31 @@ class UDPHost:
         return self.__handler.get_fingerprint()
 
     def rize_client(self):
-        self.make_socket()
-        self.__keep_connect = True
         self.__handler.request_swarm_peers()
+
+    def __tread_check_alive_peers(self):
+        self.__check_alive_peers_thread = threading.Thread(target = self.__check_alive_peers)
+        self.__check_alive_peers_thread.start()
+
+    def __check_alive_peers(self):
+        while True:
+            dead_peers = []
+            time.sleep(settings.ping_time)
+
+            for peer in self.peers:
+                if self.__check_if_peer_is_dead(peer):
+                    dead_peers.append(peer)
+
+            for peer in dead_peers:
+                print('peer {} remove peer from list'.format(self.port), peer)
+                del self.peers[peer]
+
+            time.sleep(settings.ping_time)
+            print('peer {} check live peers'.format(self.port), self.peers)
+
+    def __check_if_peer_is_dead(self, peer):
+        peer_last_action_time = self.peers[peer]
+        return time.time() - peer_last_action_time > settings.peer_timeout
+
+    def ping(self, connection):
+        self.send(b'', connection)

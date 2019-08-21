@@ -29,15 +29,6 @@ import settings
 class Handler(sstn.SignalClientHandler):
     pass
 
-
-def rize_peer(port, handler, run_function):
-    peer = host.UDPHost(handler=handler, host='', port=port)
-    target = getattr(peer, run_function)
-    peer_thread = threading.Thread(target = target)
-    peer_thread.start()
-    return peer, peer_thread
-
-
 def rm_hosts():
     if os.path.isfile(settings.hosts_file):
         os.remove(settings.hosts_file)
@@ -60,19 +51,18 @@ if __name__ == "__main__":
     # rm hosts file
     rm_hosts()
     # run SS0
-    signal_server_0_port = 10002
-    signal_server_0, ss_0_thread = rize_peer(signal_server_0_port, sstn.SignalServerHandler, 'rize_server')
+    signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
 
     # save hash to hosts
     save_host(
         socket.gethostbyname(socket.gethostname()),
-        signal_server_0_port,
+        signal_server_0.get_port(),
         signal_server_0.get_fingerprint(),
         True)
 
     # run NP0
-    peer_0, peer_0_thread = rize_peer(10003, Handler, 'rize_client')
-
+    peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
+    peer_0.rize_client()
 
     # check connect
     # run NP1
@@ -82,7 +72,7 @@ if __name__ == "__main__":
         while True:
             time.sleep(5)
     except KeyboardInterrupt:
-        stop_thread(ss_0_thread)
-        stop_thread(peer_0_thread)
+        signal_server_0.stop()
+        peer_0.stop()
 
     print('end test')

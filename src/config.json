@@ -3,5 +3,7 @@
   "port": 10002,
   "connections_by_peer": 2,
   "peers_connections": 3,
-  "buffer_size": 1024
+  "buffer_size": 1024,
+  "peer_timeout": 15,
+  "ping_time": 5
 }
