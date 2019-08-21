@@ -16,8 +16,6 @@ __version__ = [0, 0]
 # Signal Server for Traversal NAT
 
 
-wait = b'\00'
-
 
 class SignalHandler:
     keep_connection = b'\01'
@@ -77,12 +75,12 @@ class SignalServerHandler(SignalHandler):
         self.__send_pong(connection)
         self.__add_peer_to_swarm_list(msg, connection)
 
+    def __send_swarm_list(self):
+        print (self.__interface.peers)
+
     def __add_peer_to_swarm_list(self, fingerprint, connection):
-        ip = connection[0]
-        port = connection[1]
-        connection_data = self.pack_ip(ip) + self.pack_port(port)
-        self.__swarm[connection_data] = fingerprint
-        print ('siganl server {} add peer {}:{} to swarm list'.format(self.__interface.get_port(), ip, port))
+        self.__interface.peers[connection]['fingerprint'] = fingerprint
+        print ('siganl server {} add peer {}:{} to swarm list'.format(self.__interface.get_port(), connection[0], connection[1]))
 
     def __send_pong(self, connection):
         print ('signal server {} send pong to'.format(self.__interface.get_port()), connection)
@@ -116,7 +114,7 @@ class SignalClientHandler(SignalHandler):
         for peer in sstn_peer_list:
             ip = sstn_peer_list[peer]['ip']
             port = sstn_peer_list[peer]['port']
-            print ('signal client {} send request to sstn'.format(self.__interface.get_port()))
+            print ('signal client {} send request for swarm to sstn'.format(self.__interface.get_port()))
             self.__interface.send(self.get_fingerprint(), (ip, port))
 
     def __check_msg_is_pong(self, msg):
@@ -145,6 +143,7 @@ class SignalClientHandler(SignalHandler):
             time.sleep(settings.ping_time)
             if len(self.__interface.peers) == 0:
                 self.request_swarm_peers()
+
             for peer in self.__interface.peers:
                 self.__interface.ping(peer)
 

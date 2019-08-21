@@ -72,7 +72,7 @@ class UDPHost:
             '''
 
     def __update_peer_timeout(self, connection):
-        self.peers[connection] = time.time()
+        self.peers[connection] = {'last_response': time.time()}
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -138,10 +138,11 @@ class UDPHost:
                 del self.peers[peer]
 
             time.sleep(settings.ping_time)
-            print('peer {} check live peers'.format(self.port), self.peers)
+            print('peer {} has live peers'.format(self.port), self.peers)
 
     def __check_if_peer_is_dead(self, peer):
-        peer_last_action_time = self.peers[peer]
+        peer_last_action_time = self.peers[peer]['last_response']
+        print('peer {} check if peer {} is a live, last responce {} sec ago'.format(self.port, peer, time.time() - peer_last_action_time))
         return time.time() - peer_last_action_time > settings.peer_timeout
 
     def ping(self, connection):
