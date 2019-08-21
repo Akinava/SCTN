@@ -65,7 +65,7 @@ class SignalServerHandler(SignalHandler):
 
     def handle_request(self, msg, connection):
         if self.__check_msg_is_ping(msg):
-            print ('signal server {} got ping message from'.format(self.__interface.get_port()), connection)
+            print ('signal server {} recive ping message from'.format(self.__interface.get_port()), connection)
             self.__send_pong(connection)
             return
 
