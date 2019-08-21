@@ -25,9 +25,9 @@ class UDPHost:
     def __init__(self, handler, host, port=settings.port):
         self.port = port
         self.host = host
-        self.__handler = handler(self)
         self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
         self.__rize_peer()
+        self.__handler = handler(self)
         self.__tread_check_alive_peers()
 
     def make_socket(self):
@@ -57,22 +57,15 @@ class UDPHost:
     def __listener(self):
         #while self.__keep_connect:
         while True:
-            data, connection = self.socket.recvfrom(settings.buffer_size)
+            msg, connection = self.socket.recvfrom(settings.buffer_size)
             self.__update_peer_timeout(connection)
-            self.__handler.handle_request(data, connection)
-            '''
-            try:
-                self.socket.settimeout(settings.peer_timeout)
-                data, connection = self.socket.recvfrom(settings.buffer_size)
-                self.__update_peer_timeout(connection)
-                self.__handler.handle_request(data, connection)
-            except socket.timeout:
-                self.__keep_connect = False
-                # TODO ???
-            '''
+            self.__handler.handle_request(msg, connection)
 
     def __update_peer_timeout(self, connection):
-        self.peers[connection] = {'last_response': time.time()}
+        if not connection in self.peers:
+            self.peers[connection] = {}
+        self.peers[connection]['last_response'] = time.time()
+        print('peer {} update timeout with peer {}'.format(self.get_port(), connection))
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -95,16 +88,7 @@ class UDPHost:
         self.stop()
         # save peers list
 
-    def get_sstn_peer_list_from_settings(self):
-        sstn_peer_list = {}
-        for peer in settings.hosts:
-            if self.__peer_itself(settings.hosts[peer]) or \
-               not settings.hosts[peer].get('signal') is True:
-                continue
-            sstn_peer_list[peer] = settings.hosts[peer]
-        return sstn_peer_list
-
-    def __peer_itself(self, peer):
+    def peer_itself(self, peer):
         if self.get_ip() == peer['ip'] and \
            self.get_port() == peer['port']:
             return True
@@ -116,9 +100,6 @@ class UDPHost:
     # FIXME could be this function needed only for test
     def get_fingerprint(self):
         return self.__handler.get_fingerprint()
-
-    def rize_client(self):
-        self.__handler.request_swarm_peers()
 
     def __tread_check_alive_peers(self):
         self.__check_alive_peers_thread = threading.Thread(target = self.__check_alive_peers)
@@ -141,6 +122,7 @@ class UDPHost:
             print('peer {} has live peers'.format(self.port), self.peers)
 
     def __check_if_peer_is_dead(self, peer):
+        print ('check', self.get_port(), self.peers)
         peer_last_action_time = self.peers[peer]['last_response']
         print('peer {} check if peer {} is a live, last responce {} sec ago'.format(self.port, peer, time.time() - peer_last_action_time))
         return time.time() - peer_last_action_time > settings.peer_timeout

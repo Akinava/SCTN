@@ -27,7 +27,21 @@ import settings
 
 
 class Handler(sstn.SignalClientHandler):
-    pass
+    def __init__(self, interface):
+        self.__ecdsa = pycrypto.ECDSA()
+        self.__sctn = sstn.SignalClientHandler(interface, self.__ecdsa)
+        self.__interface = interface
+
+    def close(self):
+        self.__sctn.close()
+
+    def handle_request(self, msg, connection):
+        if self.__sctn.peer_is_sstn(connection):
+            # try to parce msg
+            print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), connection), msg)
+        print ('swarm peer {} message from swarm peer {}'.format(self.__interface.get_port(), connection), msg)
+        # how to difine responce from sstn?
+
 
 def rm_hosts():
     if os.path.isfile(settings.hosts_file):
@@ -62,10 +76,10 @@ if __name__ == "__main__":
 
     # run NP0
     peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
-    peer_0.rize_client()
 
-    # check connect
     # run NP1
+    peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
+
     # connect NP1 to SS0
     # run SS1
     try:
