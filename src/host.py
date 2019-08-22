@@ -128,5 +128,9 @@ class UDPHost:
         print('peer {} check if peer {} is a live, last responce {} sec ago'.format(self.port, peer, time.time() - peer_last_action_time))
         return time.time() - peer_last_action_time > settings.peer_timeout
 
+    def remove_connection(self, connection):
+        print ('peer {} remove peer {}'.format(self.get_port(), connection))
+        del self.peers[connection]
+
     def ping(self, connection):
         self.send(b'', connection)

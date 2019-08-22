@@ -42,8 +42,17 @@ class Handler(sstn.SignalClientHandler):
                 print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), connection))
                 return
 
-        print ('swarm peer {} message from swarm peer {}'.format(self.__interface.get_port(), connection), msg)
+        print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), connection))
+        if not self.peer_has_fingerprint(connection):
+            self.remove_connection(connection)
         # do something with request
+
+    def peer_has_fingerprint(self, connection):
+        return self.__interface.peers[connection].get('finerprint')
+
+    def remove_connection(self, connection):
+        print ('swarm peer {} remove peer {} as untrusted'.format(self.__interface.get_port(), connection))
+        del self.__interface.peers[connection]
 
 
 def rm_hosts():
@@ -75,6 +84,7 @@ if __name__ == "__main__":
     # save hash to hosts
     save_host(
         '127.0.0.1',
+        #'127.0.1.1',
         # check that response from sstn '127.0.1.1' should be refuse.
         #socket.gethostbyname(socket.gethostname()),
         signal_server_0.get_port(),
