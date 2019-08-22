@@ -36,11 +36,14 @@ class Handler(sstn.SignalClientHandler):
         self.__sctn.close()
 
     def handle_request(self, msg, connection):
-        if self.__sctn.peer_is_sstn(connection):
-            # try to parce msg
-            print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), connection), msg)
+        print (self.__sctn.peer_is_sstn(connection), self.__sctn.msg_is_swarm_list(msg))
+        if self.__sctn.peer_is_sstn(connection) and self.__sctn.msg_is_swarm_list(msg):
+            if self.__sctn.handle_request(msg, connection) is True:
+                print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), connection))
+                return
+
         print ('swarm peer {} message from swarm peer {}'.format(self.__interface.get_port(), connection), msg)
-        # how to difine responce from sstn?
+        # do something with request
 
 
 def rm_hosts():
@@ -65,20 +68,25 @@ if __name__ == "__main__":
     # rm hosts file
     rm_hosts()
     # run SS0
-    signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
+    hosts = []
 
+    signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
+    hosts.append(signal_server_0)
     # save hash to hosts
     save_host(
-        socket.gethostbyname(socket.gethostname()),
+        '127.0.0.1',
+        # check that response from sstn '127.0.1.1' should be refuse couse it
+        # wosn't be requested.
+        #socket.gethostbyname(socket.gethostname()),
         signal_server_0.get_port(),
         signal_server_0.get_fingerprint(),
         True)
 
     # run NP0
     peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
-
+    hosts.append(peer_0)
     # run NP1
-    peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
+    #peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
 
     # connect NP1 to SS0
     # run SS1
@@ -86,7 +94,7 @@ if __name__ == "__main__":
         while True:
             time.sleep(5)
     except KeyboardInterrupt:
-        signal_server_0.stop()
-        peer_0.stop()
+        for h in hosts:
+            h.stop()
 
     print('end test')

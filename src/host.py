@@ -15,6 +15,7 @@ __version__ = [0, 0]
 
 
 # TODO
+# check MTU
 # check fragmentation IP_DONTFRAGMENT
 
 
@@ -47,7 +48,6 @@ class UDPHost:
         self.make_socket()
         self.bind_socket()
         self.__start_listener_tread()
-        print('peer run on {} port'.format(self.port))
 
     def __start_listener_tread(self):
         #self.__keep_connect = True
@@ -55,7 +55,7 @@ class UDPHost:
         self.__listener_tread.start()
 
     def __listener(self):
-        #while self.__keep_connect:
+        #print('peer run on {} port'.format(self.port))
         while True:
             msg, connection = self.socket.recvfrom(settings.buffer_size)
             self.__update_peer_timeout(connection)
@@ -64,8 +64,8 @@ class UDPHost:
     def __update_peer_timeout(self, connection):
         if not connection in self.peers:
             self.peers[connection] = {}
-        self.peers[connection]['last_response'] = time.time()
-        print('peer {} update timeout with peer {}'.format(self.get_port(), connection))
+        self.peers[connection].update({'last_response': time.time()})
+        print('peer {} update timeout with peer {}'.format(self.get_port(), connection), self.peers)
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -76,7 +76,6 @@ class UDPHost:
         return self.socket.getsockname()[self.socket_port]
 
     def stop(self):
-        #self.__keep_connect = False
         self.socket.close()
         self.__handler.close()
         self.__listener_tread._tstate_lock = None
@@ -95,6 +94,8 @@ class UDPHost:
         return False
 
     def send(self, msg, connection):
+        if len(msg) > settings.max_UDP_MTU:
+            print ('peer {} can\'t send the message with length {}'.format(self.port, len(msg)))
         self.socket.sendto(msg, connection)
 
     # FIXME could be this function needed only for test
