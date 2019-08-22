@@ -75,8 +75,7 @@ if __name__ == "__main__":
     # save hash to hosts
     save_host(
         '127.0.0.1',
-        # check that response from sstn '127.0.1.1' should be refuse couse it
-        # wosn't be requested.
+        # check that response from sstn '127.0.1.1' should be refuse.
         #socket.gethostbyname(socket.gethostname()),
         signal_server_0.get_port(),
         signal_server_0.get_fingerprint(),
