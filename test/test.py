@@ -44,15 +44,11 @@ class Handler(sstn.SignalClientHandler):
 
         print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), connection))
         if not self.peer_has_fingerprint(connection):
-            self.remove_connection(connection)
+            self.__interface.remove_connection(connection)
         # do something with request
 
     def peer_has_fingerprint(self, connection):
         return self.__interface.peers[connection].get('finerprint')
-
-    def remove_connection(self, connection):
-        print ('swarm peer {} remove peer {} as untrusted'.format(self.__interface.get_port(), connection))
-        del self.__interface.peers[connection]
 
 
 def rm_hosts():
