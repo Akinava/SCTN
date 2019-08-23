@@ -93,6 +93,8 @@ class UDPHost:
         # save peers list
 
     def peer_itself(self, peer):
+        print ('peer {} check peer {} is itself'.format(self.port, peer))
+        print ('self ip', self.get_ip())
         if self.get_ip() == peer[self.peer_ip] and \
            self.get_port() == peer[self.peer_port]:
             return True

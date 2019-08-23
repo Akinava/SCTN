@@ -92,7 +92,7 @@ if __name__ == "__main__":
     peers.append(peer_0)
     # run NP1
     #peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
-
+    #peers.append(peer_1)
     # connect NP1 to SS0
     # run SS1
     try:

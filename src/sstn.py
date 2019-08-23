@@ -214,15 +214,7 @@ class SignalServerHandler(SignalHandler):
 
 
 class SignalClientHandler(SignalHandler):
-    """
-    swarm list
-    ip, port, figrerpint       x N time
-    keep_connection            x could be skipped
-    sign
-    public key
-    """
     def __init__(self, interface, ecdsa):
-        # FIXME setup ecdsa if it doesn't exist / load ecdsa
         self._ecdsa = ecdsa
         self._interface = interface
         self.__thread_ping_sstn()
