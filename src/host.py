@@ -20,7 +20,7 @@ __version__ = [0, 0]
 
 
 class UDPHost:
-    peer_host = 0
+    peer_ip = 0
     peer_port = 1
 
     def __init__(self, handler, host, port=settings.port):
@@ -93,8 +93,8 @@ class UDPHost:
         # save peers list
 
     def peer_itself(self, peer):
-        if self.get_ip() == peer['ip'] and \
-           self.get_port() == peer['port']:
+        if self.get_ip() == peer[self.peer_ip] and \
+           self.get_port() == peer[self.peer_port]:
             return True
         return False
 

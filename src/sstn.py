@@ -35,27 +35,19 @@ class SignalHandler:
         fingerprint = pycrypto.sha256(open_key)
         return fingerprint
 
-    def pack_ip(self, ip):
-        ip_as_num = 0
-        for octet in ip.split('.'):
-            ip_as_num <<= 8
-            ip_as_num += int(octet)
-        return struct.pack('>I', ip_as_num)
-
-    def pack_port(self, port):
-        return struct.pack('>H', port)
-
     def _get_rundom_sstn_peer_from_settings(self):
         if len(settings.peers) == 0:
             return None
 
         sstn_peer_list = []
-        for peer in settings.peers:
-            if self._interface.peer_itself(settings.peers[peer]) or \
-               not settings.peers[peer].get('signal') is True:
+        for fingerprint in settings.peers:
+            peer_data = settings.peers[fingerprint]
+
+            if self._interface.peer_itself((peer_data['ip'], peer_data['port'])) or \
+               not settings.peers[fingerprint].get('signal') is True:
                 continue
-            peer_data = settings.peers[peer]
-            peer_data['fingerprint'] = peer
+
+            peer_data['fingerprint'] = fingerprint
             sstn_peer_list.append(peer_data)
         random.shuffle(sstn_peer_list)
         return sstn_peer_list[0]
@@ -64,6 +56,14 @@ class SignalHandler:
         while not hasattr(self._interface, '_socket_is_bound') or \
               not self._interface._socket_is_bound is True:
             time.sleep(0.1)
+
+    def _save_peer(self, peer, fingerprint, signal=False):
+        if not peer in self._interface.peers:
+            self._interface.peers[peer] = {}
+        self._interface.peers[peer]['fingerprint'] = fingerprint
+        self._interface.peers[peer]['last_response'] = time.time()
+        if signal is True: self._interface.peers[peer]['signal'] = True
+        print ('siganl peer {} add peer {}'.format(self._interface.get_port(), peer))
 
 
 class SignalServerHandler(SignalHandler):
@@ -110,6 +110,18 @@ class SignalServerHandler(SignalHandler):
         # stay or leave
         print ('signal server {} connect to swarm is finished'.format(self._interface.get_port()))
 
+    def __pack_ip(self, ip):
+        ip_data = b''
+        for octet in ip.split('.'):
+            ip_data += chr(int(octet)).encode('utf8')
+        return ip_data
+
+    def __pack_port(self, port):
+        return struct.pack('>H', port)
+
+    def __pack_peer(self, peer):
+        return self.__pack_ip(peer[host.UDPHost.peer_ip]) + \
+               self.__pack_port(peer[host.UDPHost.peer_port])
 
     def handle_request(self, msg, peer):
         if self.__check_msg_is_ping(msg):
@@ -166,9 +178,8 @@ class SignalServerHandler(SignalHandler):
         msg = b''
         peers = self._interface.peers.keys()
         for peer in peers:
-            msg += self.pack_ip(peer[host.UDPHost.peer_host])   # ip          4
-            msg += self.pack_port(peer[host.UDPHost.peer_port]) # port        2
-            msg += self._interface.peers[peer]['fingerprint']   # fingerprint 32
+            msg += self.__pack_peer(peer)                       # ip           4
+            msg += self._interface.peers[peer]['fingerprint'] # fingerprint 32
         return msg
 
     def __oversupply_of_peers(self):
@@ -229,15 +240,7 @@ class SignalClientHandler(SignalHandler):
 
         print ('signal client {} send request for swarm to sstn {}'.format(self._interface.get_port(), sstn_peer))
         self._interface.send(self.get_fingerprint(), sstn_peer)
-        self.__save_peer(sstn_peer, sstn_fingerprint, True)
-
-    def __save_peer(self, peer, fingerprint, signal=False):
-        if not peer in self._interface.peers:
-            self._interface.peers[peer] = {}
-        self._interface.peers[peer]['fingerprint'] = fingerprint
-        self._interface.peers[peer]['last_response'] = time.time()
-        if signal is True: self._interface.peers[peer]['signal'] = True
-        print ('siganl client {} add peer {}'.format(self._interface.get_port(), peer))
+        self._save_peer(sstn_peer, sstn_fingerprint, True)
 
     def peer_is_sstn(self, peer):
         peer = self._interface.peers.get(peer)
@@ -266,22 +269,34 @@ class SignalClientHandler(SignalHandler):
             self.__make_connection_with_peer(peer)
 
     def __unpack_swarm_peers(self, msg):
-        msg_length = (len(msg) - self.sign_length - self.open_key_length)
-        peers_length = int(msg_length / self.peer_data_length)
-        for peer_index in range(peers_length):
-            peer_data_start = peer_index * self.peer_data_length
-            peer_data_end = peer_data_start + self.peer_data_length
-            peer_data = msg[peer_data_start: peer_data_end]
-            ip_data, tail = self.__cut_data(peer_data, self.ip_length)
-            port_data, fingerprint = self.__cut_data(tail, self.port_length)
-            # TODO unpack ip_data, port_data
-            peer = (ip, port)
+        swarm_peers = []
+        _, msg = self.__cut_data(msg, self.sign_length + self.open_key_length)
+        while len(msg) >= (self.ip_length + self.port_length):
+            peer_data, msg = self.__cut_data(msg, self.ip_length + self.port_length)
+            fingerprint, msg = self.__cut_data(msg, self.fingerprint_length)
+            peer = self.__unpack_peer(peer_data)
+
             if self._interface.peer_itself(peer):
                 continue
-            self.__save_peer(peer, fingerprint)
+            self._save_peer(peer, fingerprint)
 
         swarm_peers = []
         return swarm_peers
+
+    def __unpack_peer(self, peer_data):
+        ip_data, port_data = self.__cut_data(peer_data, self.ip_length)
+        ip = self.__unpack_ip(ip_data)
+        port = self.__unpack_port(port_data)
+        return (ip, port)
+
+    def __unpack_ip(self, ip_data):
+        ip_list = []
+        for octet in ip_data:
+            ip_list.append(str(octet))
+        return '.'.join(ip_list)
+
+    def __unpack_port(self, port_data):
+        return struct.unpack('>H', port_data)[0]
 
     def __handle_sstn_connection(self, sstn_msg, sstn_peer):
         recived_byte_flag_close_sstn_connection = self.__msg_has_close_connection_flag(sstn_msg)
