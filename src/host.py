@@ -59,10 +59,6 @@ class UDPHost:
             msg, peer = self.socket.recvfrom(settings.buffer_size)
             self.__update_peer_timeout(peer)
             self.__check_alive_peers()
-
-            if self.__msg_is_pong(msg):
-                continue
-
             self.__handler.handle_request(msg, peer)
 
     def __msg_is_pong(self, msg):
@@ -94,7 +90,6 @@ class UDPHost:
 
     def peer_itself(self, peer):
         print ('peer {} check peer {} is itself'.format(self.port, peer))
-        print ('self ip', self.get_ip())
         if self.get_ip() == peer[self.peer_ip] and \
            self.get_port() == peer[self.peer_port]:
             return True

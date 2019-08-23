@@ -49,6 +49,10 @@ class SignalHandler:
 
             peer_data['fingerprint'] = fingerprint
             sstn_peer_list.append(peer_data)
+
+        if len(sstn_peer_list) == 0:
+            return None
+
         random.shuffle(sstn_peer_list)
         return sstn_peer_list[0]
 
@@ -104,6 +108,10 @@ class SignalServerHandler(SignalHandler):
     def __connect_to_swarm(self):
         self._wait_interface_socket()
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
+
+        if sstn_peer is None:
+            print ('signal server {} no sstn to request a swarm'.format(self._interface.get_port()))
+            return
         # TODO
         # connect to sstn
         # request swarm
@@ -330,6 +338,9 @@ class SignalClientHandler(SignalHandler):
             for peer in self._interface.peers:
                 peer_data = self._interface.peers[peer]
                 if not peer_data.get('signal'):
+                    continue
+
+                if time.time() - peer_data['last_response'] < settings.ping_time:
                     continue
 
                 self._interface.ping(peer)
