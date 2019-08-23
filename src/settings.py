@@ -2,10 +2,24 @@
 # parce and put variable as local
 import json
 import os
-
+import pycrypto
 
 config_file = 'src/config.json'
-hosts = {}
+peers = {}
+
+def pack_peers():
+    peers_for_file = {}
+    for fingerprint in peers:
+        fingerprint_b58 = pycrypto.B58().pack(fingerprint)
+        peers_for_file[fingerprint_b58] = peers[fingerprint]
+    return peers_for_file
+
+
+def unpack_peers(data):
+    peers_from_file = json.loads(data)
+    for fingerprint_b58 in peers_from_file:
+        fingerprint = pycrypto.B58().unpack(fingerprint_b58)
+        peers[fingerprint] = peers_from_file[fingerprint_b58]
 
 
 def import_config():
@@ -16,19 +30,19 @@ def import_config():
 
 
 
-def import_hosts():
-    if os.path.isfile(hosts_file):
-        with open(hosts_file, 'r') as f:
+def import_peers():
+    if os.path.isfile(peers_file):
+        with open(peers_file, 'r') as f:
             try:
-                hosts = json.loads(f.read())
+                unpack_peers(f.read())
             except json.decoder.JSONDecodeError:
                 pass
 
 
-def save_hosts():
-    with open(hosts_file, 'w') as f:
-        f.write(json.dumps(hosts, indent=2))
+def save_peers():
+    with open(peers_file, 'w') as f:
+        f.write(json.dumps(pack_peers(), indent=2))
 
 
 import_config()
-import_hosts()
+import_peers()

@@ -51,16 +51,16 @@ class Handler(sstn.SignalClientHandler):
     #    return self.__interface.peers[peer].get('finerprint')
 
 
-def rm_hosts():
-    if os.path.isfile(settings.hosts_file):
-        os.remove(settings.hosts_file)
+def rm_peers():
+    if os.path.isfile(settings.peers_file):
+        os.remove(settings.peers_file)
 
 
 def save_host(ip, port, fingerprint, signal_server=False):
-    settings.hosts.update(
-            {pycrypto.B58().pack(fingerprint):
+    settings.peers.update(
+            {fingerprint:
                 {'ip': ip, 'port': port, 'signal': signal_server}})
-    settings.save_hosts()
+    settings.save_peers()
 
 
 def stop_thread(server_thread):
@@ -70,14 +70,14 @@ def stop_thread(server_thread):
 
 if __name__ == "__main__":
     print('start test')
-    # rm hosts file
-    rm_hosts()
+    # rm peers file
+    rm_peers()
     # run SS0
-    hosts = []
+    peers = []
 
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
-    hosts.append(signal_server_0)
-    # save hash to hosts
+    peers.append(signal_server_0)
+    # save fingerprint to peers
     save_host(
         '127.0.0.1',
         #'127.0.1.1',
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # run NP0
     peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
-    hosts.append(peer_0)
+    peers.append(peer_0)
     # run NP1
     #peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         while True:
             time.sleep(5)
     except KeyboardInterrupt:
-        for h in hosts:
+        for h in peers:
             h.stop()
 
     print('end test')

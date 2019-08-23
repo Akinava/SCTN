@@ -26,8 +26,9 @@ class SignalHandler:
     fingerprint_length = 32
     sign_length = 64
     open_key_length = 64
-    connection_length = 6
-    peer_data_length = connection_length + fingerprint_length
+    ip_length = 4
+    port_length = 2
+    peer_data_length = ip_length + port_length + fingerprint_length
 
     def get_fingerprint(self):
         open_key = self._ecdsa.get_pub_key()
@@ -45,15 +46,15 @@ class SignalHandler:
         return struct.pack('>H', port)
 
     def _get_rundom_sstn_peer_from_settings(self):
-        if len(settings.hosts) == 0:
+        if len(settings.peers) == 0:
             return None
 
         sstn_peer_list = []
-        for peer in settings.hosts:
-            if self._interface.peer_itself(settings.hosts[peer]) or \
-               not settings.hosts[peer].get('signal') is True:
+        for peer in settings.peers:
+            if self._interface.peer_itself(settings.peers[peer]) or \
+               not settings.peers[peer].get('signal') is True:
                 continue
-            peer_data = settings.hosts[peer]
+            peer_data = settings.peers[peer]
             peer_data['fingerprint'] = peer
             sstn_peer_list.append(peer_data)
         random.shuffle(sstn_peer_list)
@@ -112,11 +113,12 @@ class SignalServerHandler(SignalHandler):
 
     def handle_request(self, msg, peer):
         if self.__check_msg_is_ping(msg):
-            print ('signal server {} recive ping message from'.format(self._interface.get_port()), peer)
+            print ('signal server {} recive ping message from {}'.format(self._interface.get_port(), peer))
             self.__send_pong(peer)
             return
 
         if not self.__check_fingerprint(msg):
+            print ('signal server {} remove peer {} wrong fingerprint'.format(self._interface.get_port(), peer))
             self.__interface.remove_peer(peer)
             return
 
@@ -145,20 +147,21 @@ class SignalServerHandler(SignalHandler):
             leave_msg = self.__make_msg_for_leaving_peer(msg)
             leave_peer = self.__queue[0]
             self._interface.send(leave_msg, leave_peer)
-            self.__remove_peer()
+            self.__remove_oldest_peer_from_queue()
 
         msg += self.__sign_msg(msg)
         for peer in self.__queue:
             self._interface.send(msg, peer)
-        print ('signal server {} send swarm {} peers to peers'.format(self._interface.get_port(), len(self._interface.peers)))
+        print ('signal server {} send swarm (size {} peers) to peers'.format(self._interface.get_port(), len(self._interface.peers)))
 
     def __make_msg_for_leaving_peer(self, msg):
         leave_msg = msg + self.close_connection_flag
         return leave_msg + self.__sign_msg(leave_msg)
 
-    def __remove_peer(self):
+    def __remove_oldest_peer_from_queue(self):
         peer = self.__queue[0]
         self.__queue = self.__queue[1:]
+        print ('signal server {} remove oldest peer {} from the queue'.format(self._interface.get_port(), peer))
         self._interface.remove_peer(peer)
 
     def __make_swarm_msq(self):
@@ -171,7 +174,7 @@ class SignalServerHandler(SignalHandler):
         return msg
 
     def __oversupply_of_peers(self):
-        return len(self._interface.peers) < settings.min_peer_connections
+        return len(self._interface.peers) > settings.min_peer_connections
 
     def __sign_msg(self, msg):
         sign = self._ecdsa.sign(msg)
@@ -220,24 +223,23 @@ class SignalClientHandler(SignalHandler):
         # return
         # else... sstn
 
-        sstn_peer = self._get_rundom_sstn_peer_from_settings()
-        sstn_connecton = (
-            sstn_peer['ip'],
-            sstn_peer['port'])
+        sstn_data = self._get_rundom_sstn_peer_from_settings()
+        sstn_peer = (
+            sstn_data['ip'],
+            sstn_data['port'])
+        sstn_fingerprint = sstn_data['fingerprint']
 
-        print ('signal client {} send request for swarm to sstn {}'.format(self._interface.get_port(), sstn_connecton))
-        self._interface.send(self.get_fingerprint(), sstn_connecton)
-        self.__add_peer_as_sstn(
-            sstn_connecton,
-            {'fingerprint': pycrypto.B58().unpack(sstn_peer['fingerprint']),
-             'signal': True,
-             'last_response': time.time()})
+        print ('signal client {} send request for swarm to sstn {}'.format(self._interface.get_port(), sstn_peer))
+        self._interface.send(self.get_fingerprint(), sstn_peer)
+        self.__save_peer(sstn_peer, sstn_fingerprint, True)
 
-    def __add_peer_as_sstn(self, sstn_peer, sstn_data):
-        if not sstn_peer in self._interface.peers:
-            self._interface.peers[sstn_peer] = {}
-        self._interface.peers[sstn_peer].update(sstn_data)
-        print ('siganl client {} add peer {} as sstn'.format(self._interface.get_port(), sstn_peer))
+    def __save_peer(self, peer, fingerprint, signal=False):
+        if not peer in self._interface.peers:
+            self._interface.peers[peer] = {}
+        self._interface.peers[peer]['fingerprint'] = fingerprint
+        self._interface.peers[peer]['last_response'] = time.time()
+        if signal is True: self._interface.peers[peer]['signal'] = True
+        print ('siganl client {} add peer {}'.format(self._interface.get_port(), peer))
 
     def peer_is_sstn(self, peer):
         peer = self._interface.peers.get(peer)
@@ -246,8 +248,8 @@ class SignalClientHandler(SignalHandler):
         return peer.get('signal') is True
 
     def msg_is_swarm_list(self, msg):
-        swarm_list_and_keep_connection_flag_length = (len(msg) - self.sign_length - self.open_key_length)
-        keep_connection_flag = swarm_list_and_keep_connection_flag_length % (self.peer_data_length)
+        msg_length = (len(msg) - self.sign_length - self.open_key_length)
+        keep_connection_flag = msg_length % (self.peer_data_length)
         return keep_connection_flag in [0, 1]
 
     def handle_request(self, sstn_msg, sstn_peer):
@@ -266,6 +268,20 @@ class SignalClientHandler(SignalHandler):
             self.__make_connection_with_peer(peer)
 
     def __unpack_swarm_peers(self, msg):
+        msg_length = (len(msg) - self.sign_length - self.open_key_length)
+        peers_length = int(msg_length / self.peer_data_length)
+        for peer_index in range(peers_length):
+            peer_data_start = peer_index * self.peer_data_length
+            peer_data_end = peer_data_start + self.peer_data_length
+            peer_data = msg[peer_data_start: peer_data_end]
+            ip_data, tail = self.__cut_data(peer_data, self.ip_length)
+            port_data, fingerprint = self.__cut_data(tail, self.port_length)
+            # TODO unpack ip_data, port_data
+            peer = (ip, port)
+            if self._interface.peer_itself(peer):
+                continue
+            self.__save_peer(peer, fingerprint)
+
         swarm_peers = []
         return swarm_peers
 
