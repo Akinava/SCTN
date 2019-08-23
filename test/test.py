@@ -45,7 +45,7 @@ class Handler(sstn.SignalClientHandler):
 
         if len(msg) == 0:
             return
-
+        #print (self.__sctn.peer_is_sstn(peer), self.__sctn.msg_is_swarm_list(msg), msg)
         print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
 
 
@@ -89,8 +89,8 @@ if __name__ == "__main__":
     peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
     peers.append(peer_0)
     # run NP1
-    #peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
-    #peers.append(peer_1)
+    peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
+    peers.append(peer_1)
     # connect NP1 to SS0
     # run SS1
     try:

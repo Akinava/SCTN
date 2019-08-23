@@ -258,15 +258,18 @@ class SignalClientHandler(SignalHandler):
            not self.__verify_sign(sstn_msg):
             self._interface.remove_peer(sstn_peer)
             self.__request_swarm_peers()
-            return
+            print ('signal client {} bed mesg from sstn {}'.format(self._interface.get_port(), sstn_peer))
+            return False
 
         swarm_peers = self.__unpack_swarm_peers(sstn_msg)
         self.__handle_sstn_connection(sstn_msg, sstn_peer)
 
         # thread for hole punching? # TODO
-
+        #print ('signal client {} got swarm from sstn {}'.format(self._interface.get_port(), sstn_peer), swarm_peers)
         for peer in swarm_peers:
-            self.__make_connection_with_peer(peer)
+            self.__connect_to_peer(peer)
+
+        return True
 
     def __unpack_swarm_peers(self, msg):
         swarm_peers = []
@@ -279,8 +282,8 @@ class SignalClientHandler(SignalHandler):
             if self._interface.peer_itself(peer):
                 continue
             self._save_peer(peer, fingerprint)
+            swarm_peers.append(peer)
 
-        swarm_peers = []
         return swarm_peers
 
     def __unpack_peer(self, peer_data):
@@ -346,8 +349,9 @@ class SignalClientHandler(SignalHandler):
                 self._interface.ping(peer)
             time.sleep(settings.ping_time)
 
-    def __make_connection_with_peer(self, peer):
-        pass
+    def __connect_to_peer(self, peer):
+        print ('signal client {} try connect to {}'.format(self._interface.get_port(), peer))
+        # TODO
 
     def close(self):
         self.__ping_sstn_thread._tstate_lock = None
