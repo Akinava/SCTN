@@ -27,6 +27,7 @@ class SignalHandler:
     sign_length = 64
     open_key_length = 64
     connection_length = 6
+    peer_data_length = connection_length + fingerprint_length
 
     def get_fingerprint(self):
         open_key = self._ecdsa.get_pub_key()
@@ -88,12 +89,12 @@ class SignalServerHandler(SignalHandler):
                 except json.decoder.JSONDecodeError:
                     return
 
-                key_b58 = dict_data.get('ecdsa')
-                if key_b58 is None:
+                priv_key_b58 = dict_data.get('ecdsa')
+                if priv_key_b58 is None:
                     return
 
-                key = pycrypto.B58().unpack(key_b58)
-                self._ecdsa = pycrypto.ECDSA(priv_key=key)
+                priv_key = pycrypto.B58().unpack(priv_key_b58)
+                self._ecdsa = pycrypto.ECDSA(priv_key=priv_key)
 
     def __thread_connect_to_swarm(self):
         connect_to_swarm_thread = threading.Thread(target = self.__connect_to_swarm)
@@ -164,9 +165,9 @@ class SignalServerHandler(SignalHandler):
         msg = b''
         peers = self._interface.peers.keys()
         for peer in peers:
-            msg += self.pack_ip(peer[0])                      # ip          4
-            msg += self.pack_port(peer[1])                    # port        2
-            msg += self._interface.peers[peer]['fingerprint'] # fingerprint 32
+            msg += self.pack_ip(peer[host.UDPHost.peer_host])   # ip          4
+            msg += self.pack_port(peer[host.UDPHost.peer_port]) # port        2
+            msg += self._interface.peers[peer]['fingerprint']   # fingerprint 32
         return msg
 
     def __oversupply_of_peers(self):
@@ -174,8 +175,8 @@ class SignalServerHandler(SignalHandler):
 
     def __sign_msg(self, msg):
         sign = self._ecdsa.sign(msg)
-        pub_key = self._ecdsa.get_pub_key()
-        return sign + pub_key
+        open_key = self._ecdsa.get_pub_key()
+        return sign + open_key
 
     def __save_fingerprint(self, fingerprint, peer):
         self._interface.peers[peer]['fingerprint'] = fingerprint
@@ -190,10 +191,10 @@ class SignalServerHandler(SignalHandler):
     def close(self):
         print ('sstn save the key')
         with open(settings.shadow_file, 'w') as shadow_file:
-            key = self._ecdsa.get_priv_key()
-            key_b58 = pycrypto.B58().pack(key)
+            priv_key = self._ecdsa.get_priv_key()
+            priv_key_b58 = pycrypto.B58().pack(priv_key)
             shadow_file.write(json.dumps({
-                'ecdsa': key_b58
+                'ecdsa': priv_key_b58
             }, indent=2))
 
     def __del__(self):
@@ -228,7 +229,7 @@ class SignalClientHandler(SignalHandler):
         self._interface.send(self.get_fingerprint(), sstn_connecton)
         self.__add_peer_as_sstn(
             sstn_connecton,
-            {'fingerprint': sstn_peer['fingerprint'],
+            {'fingerprint': pycrypto.B58().unpack(sstn_peer['fingerprint']),
              'signal': True,
              'last_response': time.time()})
 
@@ -236,7 +237,7 @@ class SignalClientHandler(SignalHandler):
         if not sstn_peer in self._interface.peers:
             self._interface.peers[sstn_peer] = {}
         self._interface.peers[sstn_peer].update(sstn_data)
-        print ('siganl client {} add peer {} as sstn'.format(self._interface.get_port(), sstn_peer), self._interface.peers)
+        print ('siganl client {} add peer {} as sstn'.format(self._interface.get_port(), sstn_peer))
 
     def peer_is_sstn(self, peer):
         peer = self._interface.peers.get(peer)
@@ -246,27 +247,40 @@ class SignalClientHandler(SignalHandler):
 
     def msg_is_swarm_list(self, msg):
         swarm_list_and_keep_connection_flag_length = (len(msg) - self.sign_length - self.open_key_length)
-        keep_connection_flag = swarm_list_and_keep_connection_flag_length % (self.connection_length + self.fingerprint_length)
+        keep_connection_flag = swarm_list_and_keep_connection_flag_length % (self.peer_data_length)
         return keep_connection_flag in [0, 1]
 
     def handle_request(self, sstn_msg, sstn_peer):
         if not self.__verify_sstn_open_key(sstn_msg, sstn_peer) or \
            not self.__verify_sign(sstn_msg):
             self._interface.remove_peer(sstn_peer)
-
             self.__request_swarm_peers()
             return
 
         swarm_peers = self.__unpack_swarm_peers(sstn_msg)
-        self.__handle_sstn_connection(msg, sstn_peer)
+        self.__handle_sstn_connection(sstn_msg, sstn_peer)
 
         # thread for hole punching? # TODO
 
         for peer in swarm_peers:
             self.__make_connection_with_peer(peer)
 
+    def __unpack_swarm_peers(self, msg):
+        swarm_peers = []
+        return swarm_peers
+
+    def __handle_sstn_connection(self, sstn_msg, sstn_peer):
+        recived_byte_flag_close_sstn_connection = self.__msg_has_close_connection_flag(sstn_msg)
+        if recived_byte_flag_close_sstn_connection is False:
+            return
+        self._interface.remove_peer(sstn_peer)
+
+    def __msg_has_close_connection_flag(self, msg):
+        msg_length = len(msg) - self.open_key_length - self.sign_length
+        return True if msg_length % self.peer_data_length == 1 else False
+
     def __verify_sstn_open_key(self, sstn_msg, sstn_peer):
-        sstn_open_key = sstn_msg[self.open_key_length: ]
+        sstn_open_key = sstn_msg[-self.open_key_length: ]
         if len(sstn_open_key) != self.open_key_length:
             return False
 
@@ -276,12 +290,9 @@ class SignalClientHandler(SignalHandler):
     def __verify_sign(self, msg):
         msg_length = len(msg) - self.open_key_length - self.sign_length
         signed_msg, tail = self.__cut_data(msg, msg_length)
-        sign, open_key = self.__cut_data(msg, self.sign_length)
+        sign, open_key = self.__cut_data(tail, self.sign_length)
         ecdsa = pycrypto.ECDSA(pub_key=open_key)
         return ecdsa.check_signature(signed_msg, sign)
-
-    def __unpack_swarm_peers(self, msg):
-        pass
 
     def __cut_data(self, data, length):
         return data[0: length], data[length: ]

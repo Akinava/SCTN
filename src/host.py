@@ -20,8 +20,8 @@ __version__ = [0, 0]
 
 
 class UDPHost:
-    socket_host = 0
-    socket_port = 1
+    peer_host = 0
+    peer_port = 1
 
     def __init__(self, handler, host, port=settings.port):
         self.port = port
@@ -59,7 +59,7 @@ class UDPHost:
             msg, peer = self.socket.recvfrom(settings.buffer_size)
             self.__update_peer_timeout(peer)
             self.__check_alive_peers()
-            # FIXME
+
             if self.__msg_is_pong(msg):
                 continue
 
@@ -72,7 +72,7 @@ class UDPHost:
         if not peer in self.peers:
             self.peers[peer] = {}
         self.peers[peer].update({'last_response': time.time()})
-        #print('peer {} update timeout with peer {}'.format(self.get_port(), peer), self.peers)
+        print('peer {} update timeout with peer {}'.format(self.get_port(), peer))
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -80,7 +80,7 @@ class UDPHost:
         return self.ip
 
     def get_port(self):
-        return self.socket.getsockname()[self.socket_port]
+        return self.socket.getsockname()[self.peer_port]
 
     def stop(self):
         self.socket.close()
@@ -112,6 +112,7 @@ class UDPHost:
 
         for peer in self.peers:
             if self.__check_if_peer_is_dead(peer):
+                print('peer {} remove peer {} by timeout'.format(self.port, peer))
                 dead_peers.append(peer)
 
         for peer in dead_peers:

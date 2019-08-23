@@ -42,12 +42,13 @@ class Handler(sstn.SignalClientHandler):
                 return
 
         print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
-        if not self.peer_has_fingerprint(peer):
-            self.__interface.remove_peer(peer)
+        #if not self.peer_has_fingerprint(peer):
+
+        #    self.__interface.remove_peer(peer)
         # do something with request
 
-    def peer_has_fingerprint(self, peer):
-        return self.__interface.peers[peer].get('finerprint')
+    #def peer_has_fingerprint(self, peer):
+    #    return self.__interface.peers[peer].get('finerprint')
 
 
 def rm_hosts():

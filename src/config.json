@@ -1,6 +1,6 @@
 {
   "shadow_file": "src/shadow",
-  "hosts_file": "src/hosts.json",
+  "hosts_file": "src/peers.json",
   "port": 10002,
   "min_connections_by_peer": 2,
   "min_peer_connections": 3,
