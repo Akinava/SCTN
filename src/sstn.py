@@ -21,8 +21,8 @@ __version__ = [0, 0]
 
 
 class SignalHandler:
-    keep_connection_flag = b'\01'
-    close_connection_flag = b''
+    keep_connection_flag = b''
+    close_connection_flag = b'\01'
     fingerprint_length = 32
     sign_length = 64
     open_key_length = 64
@@ -143,20 +143,18 @@ class SignalServerHandler(SignalHandler):
 
     def __send_swarm_list(self):
         msg = self.__make_swarm_msq()
+
         if self.__oversupply_of_peers():
-            leave_msg = self.__make_msg_for_leaving_peer(msg)
+            leave_msg = msg + self.close_connection_flag
+            leave_msg = self.__sign_msg(leave_msg) + leave_msg
             leave_peer = self.__queue[0]
             self._interface.send(leave_msg, leave_peer)
             self.__remove_oldest_peer_from_queue()
 
-        msg += self.__sign_msg(msg)
+        msg = self.__sign_msg(msg) + msg
         for peer in self.__queue:
             self._interface.send(msg, peer)
         print ('signal server {} send swarm (size {} peers) to peers'.format(self._interface.get_port(), len(self._interface.peers)))
-
-    def __make_msg_for_leaving_peer(self, msg):
-        leave_msg = msg + self.close_connection_flag
-        return leave_msg + self.__sign_msg(leave_msg)
 
     def __remove_oldest_peer_from_queue(self):
         peer = self.__queue[0]
@@ -296,17 +294,15 @@ class SignalClientHandler(SignalHandler):
         return True if msg_length % self.peer_data_length == 1 else False
 
     def __verify_sstn_open_key(self, sstn_msg, sstn_peer):
-        sstn_open_key = sstn_msg[-self.open_key_length: ]
+        sstn_open_key = sstn_msg[self.sign_length: self.sign_length + self.open_key_length]
         if len(sstn_open_key) != self.open_key_length:
             return False
-
         fingerprint = self._interface.peers[sstn_peer]['fingerprint']
         return fingerprint == pycrypto.sha256(sstn_open_key)
 
     def __verify_sign(self, msg):
-        msg_length = len(msg) - self.open_key_length - self.sign_length
-        signed_msg, tail = self.__cut_data(msg, msg_length)
-        sign, open_key = self.__cut_data(tail, self.sign_length)
+        sign, tail = self.__cut_data(msg, self.sign_length)
+        open_key, signed_msg = self.__cut_data(tail, self.open_key_length)
         ecdsa = pycrypto.ECDSA(pub_key=open_key)
         return ecdsa.check_signature(signed_msg, sign)
 
