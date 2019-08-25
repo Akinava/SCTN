@@ -19,7 +19,6 @@ __version__ = [0, 0]
 # Signal Server for Traversal NAT
 
 
-
 class SignalHandler:
     keep_connection_flag = b''
     close_connection_flag = b'\01'
@@ -356,3 +355,16 @@ class SignalClientHandler(SignalHandler):
     def close(self):
         self.__ping_sstn_thread._tstate_lock = None
         self.__ping_sstn_thread._stop()
+
+
+if __name__ == "__main__":
+    print('start sstn')
+    signal_server = host.UDPHost(handler=SignalServerHandler, host='', port=10002)
+
+    try:
+        while True:
+            time.sleep(5)
+    except KeyboardInterrupt:
+        signal_server.stop()
+
+    print('stop sstn')
