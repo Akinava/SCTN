@@ -248,12 +248,12 @@ class SignalClientHandler(SignalHandler):
             sstn_data['ip'],
             sstn_data['port'])
         sstn_fingerprint = sstn_data['fingerprint']
-        self.__send_hello(self.get_fingerprint(), sstn_peer)
+        self.__send_hello(sstn_peer)
         self._save_peer(sstn_peer, sstn_fingerprint, True)
         print ('signal client {} send request for swarm to sstn {}'.format(self._interface.get_port(), sstn_peer))
 
-    def __send_hello(self, fingerprint, peer):
-        self._interface.send(fingerprint, peer)
+    def __send_hello(self, peer):
+        self._interface.send(self.get_fingerprint(), peer)
 
     def __msg_is_swarm_list(self, msg):
         msg_length = (len(msg) - self.sign_length - self.open_key_length)
@@ -278,7 +278,18 @@ class SignalClientHandler(SignalHandler):
         if self.__msg_is_swarm_list(msg):
             return self.__handle_swarm_list
 
+        if self.__msg_is_hello(msg):
+            return self.__handle_hello
+
         return None
+
+    def __msg_is_hello(self, msg):
+        return len(msg) == self.fingerprint_length
+
+    def __handle_hello(self, msg, peer):
+        # check fingeprint from sstn and from hello msg
+        # save peer
+        return True
 
     def __handle_swarm_list(self, msg, peer):
         if not self.__verify_sstn_open_key(msg, peer) or \
@@ -304,8 +315,13 @@ class SignalClientHandler(SignalHandler):
             self.__connect_to_peer(peer)
 
     def __connect_to_peer(self, peer):
+        self.__send_hello(peer)
+        # increase attempt counter for peer
+        # wait timeout try again
+        # if no connection:
+        #   do UDP hole pinching
+        #   UDP hole pinching can be only if that peer came sstn
         print ('signal client {} try connect to {}'.format(self._interface.get_port(), peer))
-        # TODO
 
     def __unpack_swarm_peers(self, msg):
         swarm_peers = []

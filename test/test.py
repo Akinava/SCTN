@@ -29,6 +29,7 @@ import settings
 class Handler(sstn.SignalClientHandler):
     def __init__(self, interface):
         self.__ecdsa = pycrypto.ECDSA()
+        # TODO reverse dependency host -> sstn -> handler
         self.__sctn = sstn.SignalClientHandler(interface, self.__ecdsa)
         self.__interface = interface
 
