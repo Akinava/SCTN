@@ -41,9 +41,10 @@ class SignalHandler:
         sstn_peer_list = []
         for fingerprint in settings.peers:
             peer_data = settings.peers[fingerprint]
+            peer = (peer_data['ip'], peer_data['port'])
 
-            if self._interface.peer_itself((peer_data['ip'], peer_data['port'])) or \
-               not settings.peers[fingerprint].get('signal') is True:
+            if self._interface.peer_itself(peer) or \
+               not peer_data.get('signal') is True:
                 continue
 
             peer_data['fingerprint'] = fingerprint
@@ -54,6 +55,12 @@ class SignalHandler:
 
         random.shuffle(sstn_peer_list)
         return sstn_peer_list[0]
+
+    def peer_is_sstn(self, peer):
+        peer = self._interface.peers.get(peer)
+        if peer is None:
+            return False
+        return peer.get('signal') is True
 
     def _wait_interface_socket(self):
         while not hasattr(self._interface, '_socket_is_bound') or \
@@ -241,12 +248,6 @@ class SignalClientHandler(SignalHandler):
         self._interface.send(self.get_fingerprint(), sstn_peer)
         self._save_peer(sstn_peer, sstn_fingerprint, True)
 
-    def peer_is_sstn(self, peer):
-        peer = self._interface.peers.get(peer)
-        if peer is None:
-            return False
-        return peer.get('signal') is True
-
     def msg_is_swarm_list(self, msg):
         msg_length = (len(msg) - self.sign_length - self.open_key_length)
         keep_connection_flag = msg_length % (self.peer_data_length)
@@ -280,6 +281,7 @@ class SignalClientHandler(SignalHandler):
 
             if self._interface.peer_itself(peer):
                 continue
+
             self._save_peer(peer, fingerprint)
             swarm_peers.append(peer)
 

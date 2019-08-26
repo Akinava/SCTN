@@ -33,20 +33,28 @@ class Handler(sstn.SignalClientHandler):
         self.__interface = interface
         # ping thread for swarm peers
 
-
     def close(self):
         self.__sctn.close()
 
     def handle_request(self, msg, peer):
+        if self.__handle_sstn_request(peer, msg):
+            return
+
+        if self.__msg_is_ping(msg):
+            return
+
+        #print (self.__sctn.peer_is_sstn(peer), self.__sctn.msg_is_swarm_list(msg), msg)
+        print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
+
+    def __handle_sstn_request(self, peer, msg):
         if self.__sctn.peer_is_sstn(peer) and (self.__sctn.msg_is_swarm_list(msg)):
             if self.__sctn.handle_request(msg, peer) is True:
                 print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), peer))
-                return
+                return True
+        return False
 
-        if len(msg) == 0:
-            return
-        #print (self.__sctn.peer_is_sstn(peer), self.__sctn.msg_is_swarm_list(msg), msg)
-        print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
+    def __msg_is_ping(self, msg):
+        return len(msg) == 0
 
 
 def rm_peers():
@@ -85,14 +93,10 @@ if __name__ == "__main__":
         signal_server_0.get_fingerprint(),
         True)
 
-    # run NP0
-    peer_0 = host.UDPHost(handler=Handler, host='', port=10003)
-    peers.append(peer_0)
-    # run NP1
-    peer_1 = host.UDPHost(handler=Handler, host='', port=10004)
-    peers.append(peer_1)
-    # connect NP1 to SS0
-    # run SS1
+    # run NP
+    for port in range(10003, 10005):
+        peers.append(host.UDPHost(handler=Handler, host='', port=port))
+
     try:
         while True:
             time.sleep(5)
