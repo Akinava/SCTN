@@ -1,0 +1,4 @@
+*.pyc
+src/peers.json
+src/pycrypto.py
+src/shadow
