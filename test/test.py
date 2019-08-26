@@ -31,30 +31,20 @@ class Handler(sstn.SignalClientHandler):
         self.__ecdsa = pycrypto.ECDSA()
         self.__sctn = sstn.SignalClientHandler(interface, self.__ecdsa)
         self.__interface = interface
-        # ping thread for swarm peers
 
     def close(self):
         self.__sctn.close()
 
     def handle_request(self, msg, peer):
-        if self.__handle_sstn_request(peer, msg):
+        if self.__handle_sctn_request(peer, msg):
             return
-
-        if self.__msg_is_ping(msg):
-            return
-
-        #print (self.__sctn.peer_is_sstn(peer), self.__sctn.msg_is_swarm_list(msg), msg)
         print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
 
-    def __handle_sstn_request(self, peer, msg):
-        if self.__sctn.peer_is_sstn(peer) and (self.__sctn.msg_is_swarm_list(msg)):
-            if self.__sctn.handle_request(msg, peer) is True:
-                print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), peer))
-                return True
+    def __handle_sctn_request(self, peer, msg):
+        if self.__sctn.handle_request(msg, peer) is True:
+            print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), peer))
+            return True
         return False
-
-    def __msg_is_ping(self, msg):
-        return len(msg) == 0
 
 
 def rm_peers():
