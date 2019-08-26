@@ -66,6 +66,7 @@ class SignalHandler:
         return peer.get('signal') is True
 
     def _wait_interface_socket(self):
+        # FIXME mv sleep to _interface
         while not hasattr(self._interface, '_socket_is_bound') or \
               not self._interface._socket_is_bound is True:
             time.sleep(0.1)

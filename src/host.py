@@ -50,6 +50,8 @@ class UDPHost:
 
     def __start_listener_tread(self):
         #self.__keep_connect = True
+        # FIXME set name for thread according port
+        # collect socket and thread in dict
         self.__listener_tread = threading.Thread(target = self.__listener)
         self.__listener_tread.start()
 
@@ -65,6 +67,8 @@ class UDPHost:
         return len(msg) == 0
 
     def __update_peer_timeout(self, peer):
+        # FIXME save with local incoming port
+        # {peer: incoming_port}
         if not peer in self.peers:
             self.peers[peer] = {}
         self.peers[peer].update({'last_response': time.time()})
