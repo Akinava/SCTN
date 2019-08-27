@@ -22,80 +22,95 @@ __version__ = [0, 0]
 class UDPHost:
     peer_ip = 0
     peer_port = 1
+    incoming_port = 3
+
+    min_port = 0x400
+    max_port = 0xffff
 
     def __init__(self, handler, host, port=settings.port):
         self.port = port
         self.host = host
-        self.peers = {}  # {peer_id: {'MTU': MTU, 'ip'}}
+        self.__connections = {}  # {(ip, port, incoming_port): {'MTU': MTU, 'signal': True, 'last_response': timestamp}}
+        self.__listeners = {}    # {port: {'thread': listener_tread, 'alive': True}}
         self.__rize_peer()
         self.__handler = handler(self)
+
+    def get_connections(self):
+        return self.__connections.keys()
+
+    def interface.get_connection_data(self, connection):
+        return self.__connections.get(connection)
+
+    def is_ready(self):
+        while len(self.__listeners) == 0:
+            time.sleep(0.1)
 
     def make_socket(self):
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     def bind_socket(self):
-        try:
-            self.socket.bind((self.host, self.port))
-            self._socket_is_bound = True
-        except socket.error as e:
-            if e.errno == errno.EADDRINUSE:
-                print('Error: port {} is already in use'.format(self.port))
-                self.port += 1
-                self.bind_socket()
+        socket_is_bound = False
+        port = self.port
+        while socket_is_bound is False:
+            try:
+                self.socket.bind((self.host, port))
+                socket_is_bound = True
+            except socket.error as e:
+                if e.errno == errno.EADDRINUSE:
+                    print('Error: port {} is already in use'.format(self.port))
+                    port += 1
+        return port
 
     def __rize_peer(self):
         self.make_socket()
-        self.bind_socket()
-        self.__start_listener_tread()
+        port = self.bind_socket()
+        self.__start_listener_tread(port)
 
-    def __start_listener_tread(self):
-        #self.__keep_connect = True
-        # FIXME set name for thread according port
-        # collect socket and thread in dict
-        self.__listener_tread = threading.Thread(target = self.__listener)
-        self.__listener_tread.start()
+    def __start_listener_tread(self, listener_port):
+        listener_tread = threading.Thread(
+            name = self.port,
+            target = self.__listener,
+            args=(listener_port,))
+        self.__listeners[listener_port] = {'thread': listener_tread, 'alive': True}
+        listener_tread.start()
 
-    def __listener(self):
-        #print('peer run on {} port'.format(self.port))
-        while True:
+
+    def __listener(self, listener_port):
+        #print('peer run on {} port'.format(port))
+        while self.__listeners[listener_port]['alive']:
             msg, peer = self.socket.recvfrom(settings.buffer_size)
-            self.__update_peer_timeout(peer)
+            connection = peer + (listener_port,)
+            self.__update_connection_timeout(connection)
             self.__check_alive_peers()
-            self.__handler.handle_request(msg, peer)
+            self.__handler.handle_request(msg, connection)
 
-    def __msg_is_pong(self, msg):
-        return len(msg) == 0
-
-    def __update_peer_timeout(self, peer):
-        # FIXME save with local incoming port
-        # {peer: incoming_port}
-        if not peer in self.peers:
-            self.peers[peer] = {}
-        self.peers[peer].update({'last_response': time.time()})
-        print('peer {} update timeout with peer {}'.format(self.get_port(), peer))
+    def __update_connection_timeout(self, connection):
+        if not connection in self.connections:
+            self.connection[connection] = {}
+            self.connection[connection].update({'last_response': time.time()})
+        print('peer {} update timeout with peer {}'.format(self, peer))
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
             self.ip = socket.gethostbyname(socket.gethostname())
         return self.ip
 
-    def get_port(self):
-        return self.socket.getsockname()[self.peer_port]
+    def __stop_listeners(self):
+        for port in self.__listeners:
+            self.__listeners[port]['alive'] = False
 
     def stop(self):
         self.socket.close()
         self.__handler.close()
-        self.__listener_tread._tstate_lock = None
-        self.__listener_tread._stop()
+        self.__stop_listeners()
 
     def __del__(self):
         self.stop()
         # save peers list
 
     def peer_itself(self, peer):
-        #print ('peer {} check peer {} is itself'.format(self.port, peer), self.get_ip(), self.get_port())
-        if self.get_ip() == peer[self.peer_ip] and \
-           self.get_port() == peer[self.peer_port]:
+        if peer[self.peer_ip] == self.get_ip() and \
+           peer[self.peer_port] in self.__listeners:
             return True
         return False
 
@@ -120,6 +135,7 @@ class UDPHost:
             print('peer {} remove dead peer {} from list'.format(self.port, peer))
             del self.peers[peer]
 
+        # TODO shutdown listener_tread that are not used
         #print('peer {} has live peers'.format(self.port), self.peers)
 
     def __check_if_peer_is_dead(self, peer):

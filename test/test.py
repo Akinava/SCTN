@@ -28,24 +28,15 @@ import settings
 
 class Handler(sstn.SignalClientHandler):
     def __init__(self, interface):
-        self.__ecdsa = pycrypto.ECDSA()
-        # TODO reverse dependency host -> sstn -> handler
-        self.__sctn = sstn.SignalClientHandler(interface, self.__ecdsa)
+        self.__sctn = sstn.SignalClientHandler(interface=interface, ecdsa_key=pycrypto.ECDSA(), external_handler=self)
         self.__interface = interface
 
-    def close(self):
-        self.__sctn.close()
+    def handle_request(self, msg, connection):
+        # do something
+        print ('swarm peer {} message {} from connection {}'.format(self, msg, connection))
 
-    def handle_request(self, msg, peer):
-        if self.__handle_sctn_request(peer, msg):
-            return
-        print ('swarm peer {} message from peer {}'.format(self.__interface.get_port(), peer))
-
-    def __handle_sctn_request(self, peer, msg):
-        if self.__sctn.handle_request(msg, peer) is True:
-            print ('swarm peer {} message from sstn {}'.format(self.__interface.get_port(), peer))
-            return True
-        return False
+    def send(msg, connection):
+        self.__interface.send(msg, connection)
 
 
 def rm_peers():
@@ -68,25 +59,27 @@ def stop_thread(server_thread):
 if __name__ == "__main__":
     print('start test')
     # rm peers file
-    rm_peers()
+    #rm_peers()
+
     # run SS0
     peers = []
 
-    signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
+    signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='0.0.0.0', port=10002)
     peers.append(signal_server_0)
     # save fingerprint to peers
-    save_host(
-        '127.0.0.1',
-        #'127.0.1.1',
-        # check that response from sstn '127.0.1.1' should be refuse.
-        #socket.gethostbyname(socket.gethostname()),
-        signal_server_0.get_port(),
-        signal_server_0.get_fingerprint(),
-        True)
+    if not os.path.isfile(settings.peers_file):
+        save_host(
+            '127.0.0.1',
+            #'127.0.1.1',
+            # check that response from sstn '127.0.1.1' should be refuse.
+            #socket.gethostbyname(socket.gethostname()),
+            signal_server_0.get_port(),
+            signal_server_0.get_fingerprint(),
+            True)
 
     # run NP
     for port in range(10003, 10005):
-        peers.append(host.UDPHost(handler=Handler, host='', port=port))
+        peers.append(host.UDPHost(handler=Handler, host='0.0.0.0', port=port))
 
     try:
         while True:

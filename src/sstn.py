@@ -29,8 +29,11 @@ class SignalHandler:
     port_length = 2
     peer_data_length = ip_length + port_length + fingerprint_length
 
-    def get_peer_data(self, peer):
-        return self._interface.peers.get(peer)
+    def _get_connection_data(self, peer):
+        return self._interface.get_connection_data(connection)
+
+    def _wait_interface_socket(self):
+        self._interface.is_ready()
 
     def get_fingerprint(self):
         open_key = self._ecdsa.get_pub_key()
@@ -65,18 +68,13 @@ class SignalHandler:
             return False
         return peer.get('signal') is True
 
-    def _wait_interface_socket(self):
-        # FIXME mv sleep to _interface
-        while not hasattr(self._interface, '_socket_is_bound') or \
-              not self._interface._socket_is_bound is True:
-            time.sleep(0.1)
 
     def _save_peer(self, peer, fingerprint, signal=False):
-        if self.get_peer_data(peer) is None:
+        if self._get_peer_data(peer) is None:
             self._interface.peers[peer] = {}
-        self.get_peer_data(peer)['fingerprint'] = fingerprint
-        self.get_peer_data(peer)['last_response'] = time.time()
-        if signal is True: self.get_peer_data(peer)['signal'] = True
+        self._get_peer_data(peer)['fingerprint'] = fingerprint
+        self._get_peer_data(peer)['last_response'] = time.time()
+        if signal is True: self._get_peer_data(peer)['signal'] = True
         print ('siganl peer {} add peer {}'.format(self._interface.get_port(), peer))
 
     def msg_is_ping(self, msg):
@@ -87,6 +85,7 @@ class SignalServerHandler(SignalHandler):
     def __init__(self, interface):
         self.__setup_ecdsa()
         self._interface = interface
+        self._wait_interface_socket()
         # request self external port and client
         self.__thread_connect_to_swarm()
         self.__queue = []
@@ -119,12 +118,12 @@ class SignalServerHandler(SignalHandler):
         connect_to_swarm_thread.start()
 
     def __connect_to_swarm(self):
-        self._wait_interface_socket()
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
 
         if sstn_peer is None:
-            print ('signal server {} no sstn to request a swarm'.format(self._interface.get_port()))
+            print ('signal server {} no sstn to request a swarm'.format(self._interface))
             return
+
         # TODO
         # connect to sstn
         # request swarm
@@ -144,7 +143,7 @@ class SignalServerHandler(SignalHandler):
         return self.__pack_ip(peer[host.UDPHost.peer_ip]) + \
                self.__pack_port(peer[host.UDPHost.peer_port])
 
-    def handle_request(self, msg, peer):
+    def handle_request(self, msg, peer, incoming_port):
         if self.msg_is_ping(msg):
             print ('signal server {} recive ping message from {}'.format(self._interface.get_port(), peer))
             self.__send_pong(peer)
@@ -200,7 +199,7 @@ class SignalServerHandler(SignalHandler):
         peers = self._interface.peers.keys()
         for peer in peers:
             msg += self.__pack_peer(peer)                  # ip           4
-            msg += self.get_peer_data(peer)['fingerprint'] # fingerprint 32
+            msg += self._get_peer_data(peer)['fingerprint'] # fingerprint 32
         return msg
 
     def __oversupply_of_peers(self):
@@ -212,7 +211,7 @@ class SignalServerHandler(SignalHandler):
         return sign + open_key
 
     def __save_fingerprint(self, fingerprint, peer):
-        self.get_peer_data(peer)['fingerprint'] = fingerprint
+        self._get_peer_data(peer)['fingerprint'] = fingerprint
 
     def __send_pong(self, peer):
         print ('signal server {} send pong to {}'.format(self._interface.get_port(), peer))
@@ -232,8 +231,9 @@ class SignalServerHandler(SignalHandler):
 
 
 class SignalClientHandler(SignalHandler):
-    def __init__(self, interface, ecdsa):
-        self._ecdsa = ecdsa
+    def __init__(self, interface, ecdsa_key, external_handler):
+        self._ecdsa = ecdsa_key
+        self.__handler = external_handler
         self.__swarm_peers = []
         self._interface = interface
         self.__thread_ping_sstn()
@@ -264,7 +264,7 @@ class SignalClientHandler(SignalHandler):
     def __noop(self, msg, peer):
         return True
 
-    def handle_request(self, msg, peer):
+    def handle_request(self, msg, peer, incoming_port):
         func = self.__define_request_type(msg, peer)
         if func is None:
             return False
@@ -301,7 +301,7 @@ class SignalClientHandler(SignalHandler):
             return False
 
         self.__swarm_peers += self.__unpack_swarm_peers(msg)
-        self.__handle_sstn_connection(msg, peer)
+        self.__handle_connection(msg, peer)
         self.__thread_connect_to_swarm()
         return True
 
@@ -312,6 +312,37 @@ class SignalClientHandler(SignalHandler):
         self.__connect_to_swarm_thread.start()
 
     def __connect_to_swarm(self):
+        # if first peer itself connect to last peer from the list
+        # if last peer connect to first peer from the list
+        """
+        min_peer_connections 3
+
+        step 0
+        peer 0
+
+        step 1
+        peer 0     -> peer 1 / keep sstn conn
+        peer 1     -> peer 0 / keep sstn conn
+
+        step 2
+        peer 0 1   -> peer 2 / keep sstn conn
+        peer 1 0             / keep sstn conn
+        peer 2     -> peer 0 / keep sstn conn
+
+        step 3
+        peer 0 1 2 -> peer 3 / close sstn conn
+        peer 1 0             / keep sstn conn
+        peer 2 0
+        peer 3     -> peer 0 / keep sstn conn
+
+        step 4
+        peer 1 0   -> peer 4 / close sstn conn
+        peer 2 0             / keep sstn conn
+        peer 3 0             / keep sstn conn
+        peer 4     -> peer 1 / keep sstn conn
+
+        step ...
+        """
         for peer in self.__swarm_peers:
             self.__connect_to_peer(peer)
 
@@ -331,10 +362,6 @@ class SignalClientHandler(SignalHandler):
             peer_data, msg = self.__cut_data(msg, self.ip_length + self.port_length)
             fingerprint, msg = self.__cut_data(msg, self.fingerprint_length)
             peer = self.__unpack_peer(peer_data)
-
-            if self._interface.peer_itself(peer):
-                continue
-
             self._save_peer(peer, fingerprint)
             swarm_peers.append(peer)
 
@@ -355,7 +382,7 @@ class SignalClientHandler(SignalHandler):
     def __unpack_port(self, port_data):
         return struct.unpack('>H', port_data)[0]
 
-    def __handle_sstn_connection(self, sstn_msg, sstn_peer):
+    def __handle_connection(self, sstn_msg, sstn_peer):
         recived_byte_flag_close_sstn_connection = self.__msg_has_close_connection_flag(sstn_msg)
         if recived_byte_flag_close_sstn_connection is False:
             return
@@ -369,7 +396,7 @@ class SignalClientHandler(SignalHandler):
         sstn_open_key = sstn_msg[self.sign_length: self.sign_length + self.open_key_length]
         if len(sstn_open_key) != self.open_key_length:
             return False
-        fingerprint = self.get_peer_data(sstn_peer)['fingerprint']
+        fingerprint = self._get_peer_data(sstn_peer)['fingerprint']
         return fingerprint == pycrypto.sha256(sstn_open_key)
 
     def __verify_sign(self, msg):
@@ -389,11 +416,11 @@ class SignalClientHandler(SignalHandler):
         self._wait_interface_socket()
 
         while True:
-            if len(self._interface.peers) == 0:
+            if len(self._interface.get_connections()) == 0:
                 self.__request_swarm_peers()
 
-            for peer in self._interface.peers:
-                peer_data = self.get_peer_data(peer)
+            for connection in self._interface.get_connections():
+                peer_data = self._get_peer_data(peer)
                 if not peer_data.get('fingerprint'):
                     continue
 
