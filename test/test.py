@@ -26,16 +26,17 @@ import pycrypto
 import settings
 
 
-class Handler(sstn.SignalClientHandler):
+class Handler:
     def __init__(self, interface):
-        self.__sctn = sstn.SignalClientHandler(interface=interface, ecdsa_key=pycrypto.ECDSA(), external_handler=self)
-        self.__interface = interface
+        self.__sctn = sstn.SignalClientHandler(interface, self)
 
     def handle_request(self, msg, connection):
+        print ('Handler.handle_request')
         # do something
         print ('swarm peer {} message {} from connection {}'.format(self, msg, connection))
 
     def send(msg, connection):
+        print ('Handler.send')
         self.__interface.send(msg, connection)
 
 
