@@ -85,13 +85,17 @@ class SignalHandler:
         random.shuffle(sstn_peer_list)
         return sstn_peer_list[0]
 
-    def _save_peer(self, peer, fingerprint, signal=False):
-        if not fingerprint in self._peer:
-            self._peer[fingerprint] = {'connections': []}
-        self._peer[fingerprint]['connections'].append(peer)
+    def _save_connection(self, fingerprint, connection, signal=False):
+        if not fingerprint in self._peers:
+            self._peers[fingerprint] = {'connections': []}
+        self._peers[fingerprint]['connections'].append(connection)
         if signal:
-            self._peer[fingerprint]['signal'] = True
-        print ('siganl peer {} add peer {}'.format(self._interface, peer))
+            self._peers[fingerprint]['signal'] = True
+        print ('siganl peer {} add {}'.format(self._interface, connection))
+
+    def _remove_peer(self, fingerprint):
+        if fingerprint in self._peers:
+            del self._peers[fingerprint]
 
     def _msg_is_ping(self, msg):
         return len(msg) == 0
@@ -102,9 +106,11 @@ class SignalServerHandler(SignalHandler):
         self._setup_ecdsa()
         self._interface = interface
         self._wait_interface_socket()
+        self._peers = {}
         # request self external port and client
         self.__thread_connect_to_swarm()
         self.__queue = []
+
 
     def __thread_connect_to_swarm(self):
         connect_to_swarm_thread = threading.Thread(target = self.__connect_to_swarm)
@@ -144,24 +150,35 @@ class SignalServerHandler(SignalHandler):
 
         if not self.__check_hello(msg):
             print ('signal server {} remove peer {} wrong fingerprint'.format(self, connection))
-            self.__interface.remove_peer(peer)
+            self.__interface.remove_connection(connection)
             return
 
-        self.__save_fingerprint(msg, peer)
-        self.__save_peer_in_queue(peer)
-        self.__remove_dead_peers()
+        self._save_connection(msg, connection)
+        self.__remove_dead_connections()
+        # TODO what need to do if peer has the same fingerprint ???
+        self.__add_in_queue(connection)
         self.__send_swarm_list()
 
-    def __remove_dead_peers(self):
-        tmp_queue = []
-        for peer in self.__queue:
-            if not peer in self._interface.peers:
-                continue
-            tmp_queue.append(peer)
-        self.__queue = tmp_queue
+    def __remove_dead_connections(self):
+        dead_peers = []
+        for fingerprint in self._peers:
+            connection = self._peers[fingerprint]['connections'][-1]
+            connection_data = self._interface.get_connection_data(connection)
+            if connection_data is None:
+                dead_peers.append(connection)
+                self.__remove_connection_from_queue(connections)
+            else:
+                self._peers[fingerprint]['connections'] = [connection]
 
-    def __save_peer_in_queue(self, peer):
-        self.__queue.append(peer)
+        for fingerprint in dead_peers:
+            self._remove_peer(fingerprint)
+
+    def __remove_connection_from_queue(self, connection):
+        if connection in self.__queue:
+            self.__queue.remove(connection)
+
+    def __add_in_queue(self, connection):
+        self.__queue.append(connection)
 
     def __check_hello(self, msg):
         return len(msg) == self.fingerprint_length
@@ -193,9 +210,11 @@ class SignalServerHandler(SignalHandler):
 
     def __make_swarm_msg(self):
         msg = b''
+        # revert self._peers  {connection: fingerprint}
+        # TODO
         peers = self._interface.peers.keys()
         for peer in peers:
-            msg += self.__pack_peer(peer)                  # ip           4
+            msg += self.__pack_peer(peer)                   # ip           4
             msg += self._get_peer_data(peer)['fingerprint'] # fingerprint 32
         return msg
 
@@ -206,9 +225,6 @@ class SignalServerHandler(SignalHandler):
         sign = self._ecdsa.sign(msg)
         open_key = self._ecdsa.get_pub_key()
         return sign + open_key
-
-    def __save_fingerprint(self, fingerprint, peer):
-        self._get_peer_data(peer)['fingerprint'] = fingerprint
 
     def close(self):
         print ('sstn save the key')
@@ -228,7 +244,7 @@ class SignalClientHandler(SignalHandler):
         self._ecdsa = pycrypto.ECDSA()    # FIXME ECDSA
         #self._setup_ecdsa()              # FIXME ECDSA
         self._interface = interface
-        self._peers = {}  # {fingerprint: {'signal': True, 'connections': [peer, connection]}}
+        self._peers = {}                  # {fingerprint: {'signal': True, 'connections': [peer, connection]}}
         self.__handler = external_handler
         self.__reload_external_handler_methods()
         self.__thread_ping_sstn()
@@ -247,13 +263,14 @@ class SignalClientHandler(SignalHandler):
         sstn_peer = (
             sstn_data['ip'],
             sstn_data['port'])
+        connection = self._interface.set_peer_connection(sstn_peer)
         sstn_fingerprint = sstn_data['fingerprint']
-        self.__send_hello(sstn_peer)
-        self._save_peer(sstn_peer, sstn_fingerprint, True)
-        print ('signal client {} send request for swarm to sstn {}'.format(self._interface.get_port(), sstn_peer))
+        self.__send_hello(connection)
+        self._save_connection(sstn_fingerprint, connection, True)
+        print ('signal client {} send request for swarm to sstn {}'.format(self._interface, connection))
 
-    def __send_hello(self, peer):
-        self._interface.send(self.get_fingerprint(), peer)
+    def __send_hello(self, connection):
+        self._interface.send(self.get_fingerprint(), connection)
 
     def __noop(self, msg, peer):
         return True
@@ -345,13 +362,14 @@ class SignalClientHandler(SignalHandler):
             self.__connect_to_peer(peer)
 
     def __connect_to_peer(self, peer):
-        self.__send_hello(peer)
+        connection = self._interface.set_peer_connection(peer)
+        self.__send_hello(connection)
         # increase attempt counter for peer
         # wait timeout try again
         # if no connection:
         #   do UDP hole pinching
         #   UDP hole pinching can be only if that peer came sstn
-        print ('signal client {} try connect to {}'.format(self._interface.get_port(), peer))
+        print ('signal client {} try connect to {}'.format(self._interface, connection))
 
     def __unpack_swarm_peers(self, msg):
         swarm_peers = []

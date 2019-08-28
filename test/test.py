@@ -74,13 +74,13 @@ if __name__ == "__main__":
             #'127.0.1.1',
             # check that response from sstn '127.0.1.1' should be refuse.
             #socket.gethostbyname(socket.gethostname()),
-            signal_server_0.get_port(),
+            10002,
             signal_server_0.get_fingerprint(),
             True)
 
     # run NP
-    for port in range(10003, 10005):
-        peers.append(host.UDPHost(handler=Handler, host='0.0.0.0', port=port))
+    for port in range(10003, 10004):
+        peers.append(host.UDPHost(handler=Handler, host='', port=port))
 
     try:
         while True:

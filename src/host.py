@@ -90,12 +90,15 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
+        print ('peer {} run listener on port {}'.format(self, listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
             connection = peer + (listener_port,)
             self.__update_connection_timeout(connection)
             self.__handler.handle_request(msg, connection)
+            self.__check_alive_connections()
+            self.__check_alive_listeners()
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -104,8 +107,11 @@ class UDPHost:
 
     def __stop_listeners(self):
         for port in self.__listeners:
-            self.__listeners[port]['alive'] = False
-            self.__listeners[port]['socket'].close()
+            self.__stop_listener(port)
+
+    def __stop_listener(self, port):
+        self.__listeners[port]['alive'] = False
+        self.__listeners[port]['socket'].close()
 
     def stop(self):
         self.__handler.close()
@@ -121,19 +127,27 @@ class UDPHost:
             return True
         return False
 
-    def send(self, msg, connection):
-        self.__check_alive_connections()
-        # TODO self.__check_alive_listeners() ???
+    def set_peer_connection(self, peer):
+        default_tistener_port = min(self.__listeners)
+        return peer + (default_tistener_port, )
 
+    def send(self, msg, connection):
         if len(msg) > settings.max_UDP_MTU:
             print ('peer {} can\'t send the message with length {}'.format(self, len(msg)))
-        if len(connection) == 2:
-            incoming_port = min(self.__listeners)
-            peer = connection
-        else:
-            incoming_port = connection[self.incoming_port]
-            peer = (connection[self.peer_ip], connection[self.peer_port])
+
+        incoming_port = connection[self.incoming_port]
+        peer = (connection[self.peer_ip], connection[self.peer_port])
+        print ('peer {} send a message to {}'.format(self, connection))
         self.__listeners[incoming_port]['socket'].sendto(msg, peer)
+
+    def __check_alive_listeners(self):
+        working_ports = set()
+        for connection in self.__connections:
+            working_ports.add(connection[self.incoming_port])
+
+        for port in self.__listeners:
+            if not port in working_ports:
+                self.__stop_listener(port)
 
     # FIXME could be this function needed only for test
     def get_fingerprint(self):
