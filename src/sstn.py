@@ -31,11 +31,11 @@ class SignalHandler:
 
     def _setup_ecdsa(self):
         self._ecdsa = None
-        self._get_ecdsa_from_file()
+        self._read_ecdsa_from_shadow()
         if self._ecdsa is None:
             self._ecdsa = pycrypto.ECDSA()
 
-    def _get_ecdsa_from_file(self):
+    def _read_ecdsa_from_shadow(self):
         if os.path.isfile(settings.shadow_file):
             with open(settings.shadow_file) as shadow_file:
                 shadow_data = shadow_file.read()
@@ -94,8 +94,13 @@ class SignalHandler:
         print ('siganl peer {} add {}'.format(self._interface, connection))
 
     def _remove_peer(self, fingerprint):
-        if fingerprint in self._peers:
-            del self._peers[fingerprint]
+        connections = self._peers[fingerprint]['connections']
+        for connection in connections:
+            self._interface.remove_connection(connection)
+        del self._peers[fingerprint]
+
+    def _get_peer_connections(self, fingerprint):
+        return self._peers.get(fingerprint, {}).get('connections', [])
 
     def _msg_is_ping(self, msg):
         return len(msg) == 0
@@ -137,9 +142,10 @@ class SignalServerHandler(SignalHandler):
     def __pack_port(self, port):
         return struct.pack('>H', port)
 
-    def __pack_peer(self, peer):
-        return self.__pack_ip(peer[host.UDPHost.peer_ip]) + \
-               self.__pack_port(peer[host.UDPHost.peer_port])
+    def __pack_peer(self, fingerprint):
+        connection = self._peers[fingerprint]['connections'][0]
+        return self.__pack_ip(connection[host.UDPHost.peer_ip]) + \
+               self.__pack_port(connection[host.UDPHost.peer_port])
 
     def handle_request(self, msg, connection):
         if self._msg_is_ping(msg):
@@ -153,31 +159,40 @@ class SignalServerHandler(SignalHandler):
             return
 
         self._save_connection(msg, connection)
-        self.__remove_dead_connections()
-        # TODO what need to do if peer has the same fingerprint ???
-        self.__add_in_queue(connection)
+        self.__put_in_queue(msg)
+        self.__clean_connections()
         self.__send_swarm_list()
 
-    def __remove_dead_connections(self):
+    def __remove_old_connection(self, fingerprint):
+        old, new = 0, 1
+        connections = self._peers[fingerprint]['connections']
+        if len(connections) == 1:
+            return
+        self._interface.remove_connection(connections[old])
+        self._peers[fingerprint]['connections'] = [connections[new]]
+
+    def __clean_connections(self):
         dead_peers = []
         for fingerprint in self._peers:
-            connection = self._peers[fingerprint]['connections'][-1]
+            self.__remove_old_connection(fingerprint)
+            connection = self.__get_connection_of_peer(fingerprint)
             connection_data = self._interface.get_connection_data(connection)
             if connection_data is None:
-                dead_peers.append(connection)
-                self.__remove_connection_from_queue(connections)
-            else:
-                self._peers[fingerprint]['connections'] = [connection]
+                dead_peers.append(fingerprint)
 
         for fingerprint in dead_peers:
             self._remove_peer(fingerprint)
 
-    def __remove_connection_from_queue(self, connection):
-        if connection in self.__queue:
-            self.__queue.remove(connection)
+    def __get_connection_of_peer(self, fingerprint):
+        return self._peers[fingerprint]['connections'][0]
 
-    def __add_in_queue(self, connection):
-        self.__queue.append(connection)
+    def __get_last_peer_connection(self, fingerprint):
+        return self._peers[fingerprint]['connections'][-1]
+
+    def __put_in_queue(self, fingerprint):
+        if fingerprint in self.__queue:
+            self.__queue.remove(fingerprint)
+        self.__queue.append(fingerprint)
 
     def __check_hello(self, msg):
         return len(msg) == self.fingerprint_length
@@ -187,38 +202,33 @@ class SignalServerHandler(SignalHandler):
         self._interface.ping(connection)
 
     def __send_swarm_list(self):
+        old = 0
         msg = self.__make_swarm_msg()
 
         if self.__oversupply_of_peers():
             leave_msg = msg + self.close_connection_flag
             leave_msg = self.__sign_msg(leave_msg) + leave_msg
-            leave_peer = self.__queue[0]
-            self._interface.send(leave_msg, leave_peer)
-            self.__remove_oldest_peer_from_queue()
+            leave_peer_fingerprint = self.__queue[old]
+
+            leave_peer_connection = self._get_peer_connections(leave_peer_fingerprint)[old]
+            self._interface.send(leave_msg, leave_peer_connection)
+            self._remove_peer(leave_peer_fingerprint)
 
         msg = self.__sign_msg(msg) + msg
-        for peer in self.__queue:
-            self._interface.send(msg, peer)
-        print ('signal server {} send swarm (size {} peers) to peers'.format(self._interface.get_port(), len(self._interface.peers)))
-
-    def __remove_oldest_peer_from_queue(self):
-        peer = self.__queue[0]
-        self.__queue = self.__queue[1:]
-        print ('signal server {} remove oldest peer {} from the queue'.format(self._interface.get_port(), peer))
-        self._interface.remove_peer(peer)
+        for fingerprint in self.__queue:
+            connection = self._get_peer_connections(fingerprint)[old]
+            self._interface.send(msg, connection)
+        print ('signal server {} send swarm (size {} peers) to peers'.format(self, len(self.__queue)))
 
     def __make_swarm_msg(self):
         msg = b''
-        # revert self._peers  {connection: fingerprint}
-        # TODO
-        peers = self._interface.peers.keys()
-        for peer in peers:
-            msg += self.__pack_peer(peer)                   # ip           4
-            msg += self._get_peer_data(peer)['fingerprint'] # fingerprint 32
+        for fingerprint in self.__queue:
+            msg += self.__pack_peer(fingerprint)  # ip + port    6
+            msg += fingerprint                    # fingerprint 32
         return msg
 
     def __oversupply_of_peers(self):
-        return len(self._interface.peers) > settings.min_peer_connections
+        return len(self.__queue) > settings.min_peer_connections
 
     def __sign_msg(self, msg):
         sign = self._ecdsa.sign(msg)
@@ -307,14 +317,13 @@ class SignalClientHandler(SignalHandler):
         return True
 
     def __handle_swarm_list(self, msg, connection):
-        if not self.__verify_sstn_open_key(msg, peer) or \
+        if not self.__verify_sstn_open_key(msg, connection) or \
            not self.__verify_sign(msg):
-            self._interface.remove_peer(peer)
-            self.__request_swarm_peers()
-            print ('signal client {} bed mesg from sstn {}'.format(self._interface.get_port(), peer))
+            print ('signal client {} bed mesg from sstn {}'.format(self, connection))
             return False
 
-        self.__swarm_peers += self.__unpack_swarm_peers(msg)
+        swarm_peers = self.__unpack_swarm_peers(msg)
+        self.__save_peers
         self.__handle_connection(msg, peer)
         self.__thread_connect_to_swarm()
         return True
@@ -377,7 +386,7 @@ class SignalClientHandler(SignalHandler):
             peer_data, msg = self.__cut_data(msg, self.ip_length + self.port_length)
             fingerprint, msg = self.__cut_data(msg, self.fingerprint_length)
             peer = self.__unpack_peer(peer_data)
-            self._save_peer(peer, fingerprint)
+            self._save_peer_to_settings(peer, fingerprint)
             swarm_peers.append(peer)
 
         return swarm_peers
@@ -407,12 +416,13 @@ class SignalClientHandler(SignalHandler):
         msg_length = len(msg) - self.open_key_length - self.sign_length
         return True if msg_length % self.peer_data_length == 1 else False
 
-    def __verify_sstn_open_key(self, sstn_msg, sstn_peer):
+    def __verify_sstn_open_key(self, sstn_msg, sstn_connection):
         sstn_open_key = sstn_msg[self.sign_length: self.sign_length + self.open_key_length]
-        if len(sstn_open_key) != self.open_key_length:
+        incoming_fingerprint = pycrypto.sha256(sstn_open_key)
+        connections = self._get_peer_connections(incoming_fingerprint)
+        if len(connections) == 0 or sstn_connection not in connections:
             return False
-        fingerprint = self._get_peer_data(sstn_peer)['fingerprint']
-        return fingerprint == pycrypto.sha256(sstn_open_key)
+        return True
 
     def __verify_sign(self, msg):
         sign, tail = self.__cut_data(msg, self.sign_length)

@@ -3,9 +3,6 @@
 import os
 import sys
 import time
-import host
-import sstn
-import settings
 
 
 __author__ = 'Akinava'
@@ -18,6 +15,9 @@ __version__ = [0, 0]
 test_dir = os.path.dirname(os.path.abspath(__file__))
 src_dir = os.path.join(test_dir, '../src')
 sys.path.append(src_dir)
+import host
+import sstn
+import settings
 
 
 class Handler:
@@ -32,6 +32,9 @@ class Handler:
     def send(self, msg, connection):
         print ('Handler.send')
         self.__interface.send(msg, connection)
+
+    def close(self):
+        self.__sctn.close()
 
 
 def rm_peers():
