@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import threading
-import random
 import time
-import socket
-import json
-import ctypes
+import host
+import sstn
+import settings
 
 
 __author__ = 'Akinava'
@@ -20,10 +18,6 @@ __version__ = [0, 0]
 test_dir = os.path.dirname(os.path.abspath(__file__))
 src_dir = os.path.join(test_dir, '../src')
 sys.path.append(src_dir)
-import host
-import sstn
-import pycrypto
-import settings
 
 
 class Handler:
@@ -35,7 +29,7 @@ class Handler:
         # do something
         print ('swarm peer {} message {} from connection {}'.format(self, msg, connection))
 
-    def send(msg, connection):
+    def send(self, msg, connection):
         print ('Handler.send')
         self.__interface.send(msg, connection)
 

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import select
 import socket
 import errno
 import threading
@@ -48,7 +47,7 @@ class UDPHost:
         print('peer {} update timeout with {}'.format(self, connection))
 
     def save_connection(self, connection):
-        if not connection in self.__connections:
+        if connection not in self.__connections:
             self.__connections[connection] = {}
 
     def is_ready(self):
@@ -78,14 +77,16 @@ class UDPHost:
 
     def __start_listener_tread(self, listener_port):
         listener_tread = threading.Thread(
-            name = self.port,
-            target = self.__listener,
+            name=self.port,
+            target=self.__listener,
             args=(listener_port,))
-        self.__update_listener_data(listener_port, {'thread': listener_tread, 'alive': True})
+        self.__update_listener_data(
+            listener_port,
+            {'thread': listener_tread, 'alive': True})
         listener_tread.start()
 
     def __update_listener_data(self, port, data):
-        if not port in self.__listeners:
+        if port not in self.__listeners:
             self.__listeners[port] = {}
         self.__listeners[port].update(data)
 
@@ -146,7 +147,7 @@ class UDPHost:
             working_ports.add(connection[self.incoming_port])
 
         for port in self.__listeners:
-            if not port in working_ports:
+            if port not in working_ports:
                 self.__stop_listener(port)
 
     # FIXME could be this function needed only for test
@@ -166,7 +167,7 @@ class UDPHost:
             del self.__connections[connection]
 
         # TODO shutdown listener_tread that are not used
-        #print('peer {} has live peers'.format(self.port), self.peers)
+        # print('peer {} has live peers'.format(self.port), self.peers)
 
     def __check_if_connection_is_dead(self, connection):
         connection_last_action_time = self.__connections[connection]['last_response']
@@ -174,7 +175,7 @@ class UDPHost:
 
     def remove_connection(self, connection):
         print ('peer {} remove connection {}'.format(self.get_port(), connection))
-        del self.peers[peer]
+        del self.peers[connection]
 
     def ping(self, connection):
         self.send(b'', connection)

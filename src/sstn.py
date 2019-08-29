@@ -86,7 +86,7 @@ class SignalHandler:
         return sstn_peer_list[0]
 
     def _save_connection(self, fingerprint, connection, signal=False):
-        if not fingerprint in self._peers:
+        if fingerprint not in self._peers:
             self._peers[fingerprint] = {'connections': []}
         self._peers[fingerprint]['connections'].append(connection)
         if signal:
@@ -111,9 +111,8 @@ class SignalServerHandler(SignalHandler):
         self.__thread_connect_to_swarm()
         self.__queue = []
 
-
     def __thread_connect_to_swarm(self):
-        connect_to_swarm_thread = threading.Thread(target = self.__connect_to_swarm)
+        connect_to_swarm_thread = threading.Thread(target=self.__connect_to_swarm)
         connect_to_swarm_thread.start()
 
     def __connect_to_swarm(self):
