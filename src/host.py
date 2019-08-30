@@ -113,10 +113,14 @@ class UDPHost:
     def __stop_listener(self, port):
         self.__listeners[port]['alive'] = False
         self.__listeners[port]['socket'].close()
+        self.__listeners[port]['thread']._tstate_lock = None
+        self.__listeners[port]['thread']._stop()
+
 
     def stop(self):
         self.__handler.close()
         self.__stop_listeners()
+        print ('host stop')
 
     def __del__(self):
         self.stop()

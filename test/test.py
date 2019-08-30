@@ -35,6 +35,7 @@ class Handler:
 
     def close(self):
         self.__sctn.close()
+        print ('Handrel close')
 
 
 def rm_peers():
@@ -66,7 +67,7 @@ if __name__ == "__main__":
              'signal': True})
 
     # run NP
-    for port in range(10003, 10004):
+    for port in range(10003, 10005):
         peers.append(host.UDPHost(handler=Handler, host='', port=port))
 
     try:

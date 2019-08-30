@@ -109,7 +109,6 @@ class SignalHandler:
             connections = self._get_peer_connections(fingerprint)
             connections_tmp = []
             for connection in connections:
-                print ('### clean', connection, self._interface.get_connections())
                 if connection not in self._interface.get_connections():
                     continue
                 connections_tmp.append(connection)
@@ -257,6 +256,7 @@ class SignalClientHandler(SignalHandler):
         self.__handler = external_handler
         self.__reload_external_handler_methods()
         self.__thread_ping_sstn()
+        self.__connection_threads = {}
 
     def __reload_external_handler_methods(self):
         self.__external_handle_request = self.__handler.handle_request
@@ -336,7 +336,7 @@ class SignalClientHandler(SignalHandler):
         peers = self.__unpack_peers(msg)
         self.__save_peers(peers)
         self.__handle_connection(msg, connection)
-        self.__thread_connect_to_swarm(peers)
+        self.__thread_connect_to_peer(peers)
         return True
 
     def __save_peers(self, peers):
@@ -351,53 +351,18 @@ class SignalClientHandler(SignalHandler):
             return True
         return False
 
-    def __thread_connect_to_swarm(self, peers):
-        if not self.__peer_involved_in_connection(peers):
+    def __peer_for_connection(self, peers):
+        if self._interface.peer_itself(peers[0]):
+            return peers[-1]
+        return peers[0]
+
+    def __thread_connect_to_peer(self, peers):
+        if not self.__peer_for_connection(peers):
             return
 
-        # TODO I think it should be go in parallel
-        # define a peer for connect
-        # rize connection thread
-        # if hasattr(self, '__connect_to_swarm_thread') and self.__connect_to_swarm_thread.isAlive():
-        #     return
-
-        # self.__connect_to_swarm_thread = threading.Thread(target=self.__connect_to_swarm)
-        # self.__connect_to_swarm_thread.start()
-
-    def __connect_to_swarm(self):
-        # if first peer itself connect to last peer from the list
-        # if last peer connect to first peer from the list
-        """
-        min_peer_connections 3
-
-        step 0
-        peer 0
-
-        step 1
-        peer 0     -> peer 1 / keep sstn conn
-        peer 1     -> peer 0 / keep sstn conn
-
-        step 2
-        peer 0 1   -> peer 2 / keep sstn conn
-        peer 1 0             / keep sstn conn
-        peer 2     -> peer 0 / keep sstn conn
-
-        step 3
-        peer 0 1 2 -> peer 3 / close sstn conn
-        peer 1 0             / keep sstn conn
-        peer 2 0
-        peer 3     -> peer 0 / keep sstn conn
-
-        step 4
-        peer 1 0   -> peer 4 / close sstn conn
-        peer 2 0             / keep sstn conn
-        peer 3 0             / keep sstn conn
-        peer 4     -> peer 1 / keep sstn conn
-
-        step ...
-        """
-        for peer in self.__swarm_peers:
-            self.__connect_to_peer(peer)
+        peer_to_connect = self.__peer_for_connection(peers)
+        self.__shutdoown_recuest_connection_to_peer_thread(peer_to_connect)
+        # TODO thread to connect
 
     def __connect_to_peer(self, peer):
         connection = self._interface.set_peer_connection(peer)
@@ -408,6 +373,16 @@ class SignalClientHandler(SignalHandler):
         #   do UDP hole pinching
         #   UDP hole pinching can be only if that peer came sstn
         print ('signal client {} try connect to {}'.format(self._interface, connection))
+
+    def __shutdoown_recuest_connection_to_peer_thread(self, peer):
+        fingerprint = peer['fingerprint']
+        if not fingerprint in self.__connection_threads:
+            return
+        connection_thread = self.__connection_threads[fingerprint]
+        if connection_thread.isAlive():
+            connection_thread._tstate_lock = None
+            connection_thread._stop()
+        del self.__connection_threads[fingerprint]
 
     def __unpack_peers(self, msg):
         peers = []
@@ -475,6 +450,7 @@ class SignalClientHandler(SignalHandler):
     def close(self):
         self.__ping_sstn_thread._tstate_lock = None
         self.__ping_sstn_thread._stop()
+        print ('sctn close')
 
 
 if __name__ == "__main__":
