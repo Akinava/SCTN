@@ -30,7 +30,7 @@ class Handler:
         print ('swarm peer {} message {} bytes from connection {}'.format(self, len(msg), connection))
 
     def send(self, msg, connection):
-        print ('Handler.send')
+        print ('### Handler.send')
         self.__interface.send(msg, connection)
 
     def close(self):
@@ -49,12 +49,11 @@ def stop_thread(server_thread):
 
 
 if __name__ == "__main__":
-    print('start test')
-    # rm peers file
-    rm_peers()
+    print ('start test')
 
     # run SS0
     peers = []
+    last_peer = -1
 
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
     peers.append(signal_server_0)
@@ -70,11 +69,19 @@ if __name__ == "__main__":
     for port in range(10003, 10005):
         peers.append(host.UDPHost(handler=Handler, host='', port=port))
 
+    while not peers[last_peer].is_ready():
+        time.sleep(0.1)
+
+    print ('### the last peer has connect with swarm')
+
     try:
         while True:
             time.sleep(5)
     except KeyboardInterrupt:
-        for h in peers:
-            h.stop()
+        pass
 
-    print('end test')
+    for h in peers:
+        h.stop()
+
+    rm_peers()
+    print ('end test')

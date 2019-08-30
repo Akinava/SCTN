@@ -41,16 +41,22 @@ class UDPHost:
     def get_connection_data(self, connection):
         return self.__connections.get(connection)
 
+    def get_connection_last_responce_time(self, connection):
+        return self.get_connection_data(connection)['last_response']
+
     def update_connection_timeout(self, connection):
         self.save_connection(connection)
         self.__connections[connection].update({'last_response': time.time()})
-        print('peer {} update timeout with {}'.format(self, connection))
+        # print('peer {} update timeout with {}'.format(self, connection))
 
     def save_connection(self, connection):
         if connection not in self.__connections:
             self.__connections[connection] = {}
 
     def is_ready(self):
+        return self.__handler.is_ready()
+
+    def listener_is_ready(self):
         while len(self.__listeners) == 0:
             time.sleep(0.1)
 
@@ -134,7 +140,7 @@ class UDPHost:
 
     def set_peer_connection(self, peer):
         default_tistener_port = min(self.__listeners)
-        return peer + (default_tistener_port, )
+        return (peer['ip'], peer['port'], default_tistener_port)
 
     def send(self, msg, connection):
         if len(msg) > settings.max_UDP_MTU:
@@ -142,7 +148,7 @@ class UDPHost:
 
         incoming_port = connection[self.incoming_port]
         peer = (connection[self.peer_ip], connection[self.peer_port])
-        print ('peer {} send a message to {}'.format(self, connection))
+        # print ('peer {} send a message to {}'.format(self, connection))
         self.__listeners[incoming_port]['socket'].sendto(msg, peer)
 
     def __check_alive_listeners(self):
