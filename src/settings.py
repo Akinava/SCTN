@@ -7,6 +7,7 @@ import pycrypto
 config_file = 'src/config.json'
 peers = {}
 
+
 def pack_peers():
     peers_for_file = {}
     for fingerprint in peers:
@@ -29,7 +30,6 @@ def import_config():
             globals()[k] = v
 
 
-
 def import_peers():
     if os.path.isfile(peers_file):
         with open(peers_file, 'r') as f:
@@ -37,6 +37,16 @@ def import_peers():
                 unpack_peers(f.read())
             except json.decoder.JSONDecodeError:
                 pass
+
+
+def add_peer(peer):
+    peer_data = {peer['fingerprint']:
+                 {'ip': peer['ip'],
+                  'port': peer['port']}}
+    if peer.get('signal'):
+        peer_data[peer['fingerprint']]['signal'] = True
+    peers.update(peer_data)
+    save_peers()
 
 
 def save_peers():

@@ -41,7 +41,7 @@ class UDPHost:
     def get_connection_data(self, connection):
         return self.__connections.get(connection)
 
-    def __update_connection_timeout(self, connection):
+    def update_connection_timeout(self, connection):
         self.save_connection(connection)
         self.__connections[connection].update({'last_response': time.time()})
         print('peer {} update timeout with {}'.format(self, connection))
@@ -96,7 +96,7 @@ class UDPHost:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
             connection = peer + (listener_port,)
-            self.__update_connection_timeout(connection)
+            self.update_connection_timeout(connection)
             self.__handler.handle_request(msg, connection)
             self.__check_alive_connections()
             self.__check_alive_listeners()
@@ -123,8 +123,8 @@ class UDPHost:
         # save peers list
 
     def peer_itself(self, peer):
-        if peer[self.peer_ip] == self.get_ip() and \
-           peer[self.peer_port] in self.__listeners:
+        if peer['ip'] == self.get_ip() and \
+           peer['port'] in self.__listeners:
             return True
         return False
 
