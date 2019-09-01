@@ -3,7 +3,6 @@ import socket
 import errno
 import threading
 import time
-
 import settings
 
 __author__ = 'Akinava'
@@ -23,7 +22,7 @@ class UDPHost:
     peer_port     = 1
     incoming_port = 2
 
-    min_port      = 0x400
+    min_user_port      = 0x400
     max_user_port = 0xbfff
     max_port      = 0xffff
 
@@ -75,6 +74,8 @@ class UDPHost:
                 if e.errno == errno.EADDRINUSE:
                     print('Error: port {} is already in use'.format(self.port))
                     port += 1
+                    if port > self.max_port:
+                        port = self.min_user_port
         return port
 
     def __rize_peer(self):
@@ -104,6 +105,8 @@ class UDPHost:
             connection = peer + (listener_port,)
             self.update_connection_timeout(connection)
             self.__handler.handle_request(msg, connection)
+            # TODO __check_alive_connections __check_alive_listeners relocate
+            # in to thread
             self.__check_alive_connections()
             self.__check_alive_listeners()
 
@@ -121,6 +124,7 @@ class UDPHost:
         self.__listeners[port]['socket'].close()
         self.__listeners[port]['thread']._tstate_lock = None
         self.__listeners[port]['thread']._stop()
+        del self.__listeners[port]['thread']
 
 
     def stop(self):
