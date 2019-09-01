@@ -32,6 +32,7 @@ class UDPHost:
         self.__connections = {}  # {(ip, port, incoming_port): {'MTU': MTU, 'last_response': timestamp}}
         self.__listeners = {}    # {port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
         self.__rize_peer()
+        self.__thread_check_connections()
         self.__handler = handler(self)
 
     def get_connections(self):
@@ -105,10 +106,16 @@ class UDPHost:
             connection = peer + (listener_port,)
             self.update_connection_timeout(connection)
             self.__handler.handle_request(msg, connection)
-            # TODO __check_alive_connections __check_alive_listeners relocate
-            # in to thread
+
+    def __thread_check_connections(self):
+        self.__check_connections_thread = threading.Thread(target=self.__check_connections)
+        self.__check_connections_thread.start()
+
+    def __check_connections(self):
+        while True:
             self.__check_alive_connections()
             self.__check_alive_listeners()
+            time.sleep(settings.ping_time)
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -126,9 +133,13 @@ class UDPHost:
         self.__listeners[port]['thread']._stop()
         del self.__listeners[port]['thread']
 
+    def __stop_check_connections(self):
+        self.__check_connections_thread._tstate_lock = None
+        self.__check_connections_thread._stop()
 
     def stop(self):
         self.__handler.close()
+        self.__stop_check_connections()
         self.__stop_listeners()
         print ('host stop')
 
@@ -142,8 +153,11 @@ class UDPHost:
             return True
         return False
 
+    def __default_listener_port(self):
+        return min(self.__listeners)
+
     def set_peer_connection(self, peer):
-        default_tistener_port = min(self.__listeners)
+        default_tistener_port = self.__default_listener_port()
         return (peer['ip'], peer['port'], default_tistener_port)
 
     def send(self, msg, connection):
@@ -157,6 +171,7 @@ class UDPHost:
 
     def __check_alive_listeners(self):
         working_ports = set()
+        working_ports.add(self.__default_listener_port())
         for connection in self.__connections:
             working_ports.add(connection[self.incoming_port])
 
@@ -188,7 +203,7 @@ class UDPHost:
         return time.time() - connection_last_action_time > settings.peer_timeout
 
     def remove_connection(self, connection):
-        print ('peer {} remove connection {}'.format(self.get_port(), connection))
+        print ('peer {} remove connection {}'.format(self, connection))
         del self.peers[connection]
 
     def ping(self, connection):
