@@ -50,6 +50,7 @@ def add_peer(peer):
 
 
 def save_peers():
+    # TODO check if data the same do nothing
     with open(peers_file, 'w') as f:
         f.write(json.dumps(pack_peers(), indent=2))
 
