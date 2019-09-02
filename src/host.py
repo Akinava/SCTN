@@ -41,13 +41,18 @@ class UDPHost:
     def get_connection_data(self, connection):
         return self.__connections.get(connection)
 
-    def get_connection_last_responce_time(self, connection):
-        return self.get_connection_data(connection)['last_response']
+    def get_connection_last_request_time(self, connection):
+        return self.get_connection_data(connection)['last_request']
 
-    def update_connection_timeout(self, connection):
+    def __update_time_last_responce(self, connection):
         self.save_connection(connection)
         self.__connections[connection].update({'last_response': time.time()})
+        print ('### {} update connection with'.format(self._default_listener_port()), connection, self.__connections)
         # print('peer {} update timeout with {}'.format(self, connection))
+
+    def __update_time_last_request(self, connection):
+        self.save_connection(connection)
+        self.__connections[connection].update({'last_request': time.time()})
 
     def save_connection(self, connection):
         if connection not in self.__connections:
@@ -99,12 +104,12 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
-        print ('peer {} run listener on port {}'.format(self, listener_port))
+        # print ('peer {} run listener on port {}'.format(self, listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
             connection = peer + (listener_port,)
-            self.update_connection_timeout(connection)
+            self.__update_time_last_responce(connection)
             self.__handler.handle_request(msg, connection)
 
     def __thread_check_connections(self):
@@ -153,25 +158,26 @@ class UDPHost:
             return True
         return False
 
-    def __default_listener_port(self):
+    def _default_listener_port(self):
         return min(self.__listeners)
 
     def set_peer_connection(self, peer):
-        default_tistener_port = self.__default_listener_port()
+        default_tistener_port = self._default_listener_port()
         return (peer['ip'], peer['port'], default_tistener_port)
 
     def send(self, msg, connection):
         if len(msg) > settings.max_UDP_MTU:
-            print ('peer {} can\'t send the message with length {}'.format(self, len(msg)))
+            print ('peer {} can\'t send the message with length {}'.format(self._default_listener_port(), len(msg)))
 
         incoming_port = connection[self.incoming_port]
         peer = (connection[self.peer_ip], connection[self.peer_port])
         # print ('peer {} send a message to {}'.format(self, connection))
         self.__listeners[incoming_port]['socket'].sendto(msg, peer)
+        self.__update_time_last_request(connection)
 
     def __check_alive_listeners(self):
         working_ports = set()
-        working_ports.add(self.__default_listener_port())
+        working_ports.add(self._default_listener_port())
         for connection in self.__connections:
             working_ports.add(connection[self.incoming_port])
 
@@ -187,24 +193,24 @@ class UDPHost:
         dead_connections = []
 
         for connection in self.__connections:
-            if self.__check_if_connection_is_dead(connection):
-                print('peer {} remove connection {} by timeout'.format(self, connection))
+            if not self.__check_connection_is_alive(connection):
+                # print('peer {} remove connection {} by timeout, last responce {}'.format(self._default_listener_port(), connection, time.time() - self.__connections[connection]['last_response']))
                 dead_connections.append(connection)
 
         for connection in dead_connections:
-            print('peer {} remove dead connection {} from list'.format(self, connection))
+            print('peer {} remove dead connection {} from list'.format(self._default_listener_port(), connection))
             del self.__connections[connection]
 
         # TODO shutdown listener_tread that are not used
         # print('peer {} has live peers'.format(self.port), self.peers)
 
-    def __check_if_connection_is_dead(self, connection):
+    def __check_connection_is_alive(self, connection):
         connection_last_action_time = self.__connections[connection]['last_response']
-        return time.time() - connection_last_action_time > settings.peer_timeout
+        return time.time() - connection_last_action_time < settings.peer_timeout
 
     def remove_connection(self, connection):
-        print ('peer {} remove connection {}'.format(self, connection))
-        del self.peers[connection]
+        print ('peer {} remove connection {}'.format(self._default_listener_port(), connection))
+        del self.__connections[connection]
 
     def ping(self, connection):
         self.send(b'', connection)
