@@ -269,6 +269,9 @@ class SignalClientHandler(SignalHandler):
         self.__handler.is_ready = self.is_ready
 
     def is_ready(self):
+        return self.__peer_has_connection_with_swarm()
+
+    def __peer_has_connection_with_swarm(self):
         for fingerprint in self._peers:
             peer_is_signal = self._peers[fingerprint].get('signal')
             if not peer_is_signal:
@@ -461,7 +464,8 @@ class SignalClientHandler(SignalHandler):
         self.__connection_threads[fingerprint]['alive'] = False
 
     def __shutdoown_request_threads(self):
-        for fingerprint in self.__connection_threads:
+        threads = list(self.__connection_threads.keys())
+        for fingerprint in threads:
             self.__shutdoown_request_connection_to_peer_thread(fingerprint)
 
     def __shutdoown_request_connection_to_peer_thread(self, fingerprint):
@@ -524,13 +528,14 @@ class SignalClientHandler(SignalHandler):
         return data[0: length], data[length:]
 
     def __thread_ping_peers(self):
+        self.__ping_peers_thread_is_alive = True
         self.__ping_peers_thread = threading.Thread(target=self.__ping_peers)
         self.__ping_peers_thread.start()
 
     def __ping_peers(self):
         self._wait_interface_socket()
 
-        while True:
+        while self.__ping_peers_thread_is_alive:
             if len(self._interface.get_connections()) == 0:
                 self.__request_swarm_peers()
 
@@ -552,6 +557,7 @@ class SignalClientHandler(SignalHandler):
         self._interface.ping(connection)
 
     def close(self):
+        self.__ping_peers_thread_is_alive = False
         self.__ping_peers_thread._tstate_lock = None
         self.__ping_peers_thread._stop()
         self.__shutdoown_request_threads()
