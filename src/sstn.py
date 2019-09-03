@@ -528,6 +528,8 @@ class SignalClientHandler(SignalHandler):
         return data[0: length], data[length:]
 
     def __thread_ping_peers(self):
+        # FIXME relocate this thread to host __thread_check_connections remove
+        # pong from sstn remove pong from ss
         self.__ping_peers_thread_is_alive = True
         self.__ping_peers_thread = threading.Thread(target=self.__ping_peers)
         self.__ping_peers_thread.start()

@@ -166,6 +166,7 @@ class UDPHost:
         return (peer['ip'], peer['port'], default_tistener_port)
 
     def send(self, msg, connection):
+        # FIXME if MTU didn't setup use min_UDP_MTU
         if len(msg) > settings.max_UDP_MTU:
             print ('peer {} can\'t send the message with length {}'.format(self._default_listener_port(), len(msg)))
 
