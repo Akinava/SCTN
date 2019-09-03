@@ -263,18 +263,19 @@ class SignalClientHandler(SignalHandler):
         self.__handler = external_handler
         self.__reload_external_handler_methods()
         self.__connection_threads = {}
-        self.__thread_swarm_maker()
+        self.__swarm_watcher()
 
-    def __thread_swarm_maker(self):
+    def __swarm_watcher(self):
         self._wait_interface_socket()
         self.__swarm_maker_thread = threading.Thread(target=self.__swarm_maker)
         self.__swarm_maker_thread.start()
 
     def __swarm_maker(self):
         while True:
-            if len(self._interface.get_connections()) == 0:
-                # TODO find in settings swarm peers, connect
-                self.__request_swarm_peers()
+            if len(self._interface.get_connections()) < settings.min_peer_connections:
+                # TODO if peer in swarm request peer connect
+                # TODO if swarm peers in settings, connect to them
+                self.__call_peers_by_sstn()
             time.sleep(settings.ping_time)
 
     def __reload_external_handler_methods(self):
@@ -292,15 +293,12 @@ class SignalClientHandler(SignalHandler):
                 return True
         return False
 
-    def __request_swarm_peers(self):
-        # if sctn has connection with swarm or list of swarm peers,
-        #   request connections use current connect with the swarm
-        #   return
-        # else... sstn
+    def __call_peers_by_sstn(self):
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
             print ('signal client {} no sstn in peers file'.format(self._interface._default_listener_port()))
             return
+        # TODO check if peer has connect with sstn_peer: return
         self.__send_hello(sstn_peer)
 
     def __send_hello(self, peer):
