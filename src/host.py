@@ -44,15 +44,16 @@ class UDPHost:
     def get_connection_last_request_time(self, connection):
         return self.get_connection_data(connection)['last_request']
 
-    def __update_time_last_responce(self, connection):
+    def __update_time_last_response(self, connection):
         self.save_connection(connection)
         self.__connections[connection].update({'last_response': time.time()})
-        print ('### {} update connection with'.format(self._default_listener_port()), connection, self.__connections)
+        print ('### {} update last_response with'.format(self._default_listener_port()), connection, self.__connections)
         # print('peer {} update timeout with {}'.format(self, connection))
 
     def __update_time_last_request(self, connection):
         self.save_connection(connection)
         self.__connections[connection].update({'last_request': time.time()})
+        print ('### {} update last_request with'.format(self._default_listener_port()), connection, self.__connections)
 
     def save_connection(self, connection):
         if connection not in self.__connections:
@@ -104,13 +105,18 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
-        # print ('peer {} run listener on port {}'.format(self, listener_port))
+        print ('peer {} run listener on port {}'.format(self, listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
             connection = peer + (listener_port,)
-            self.__update_time_last_responce(connection)
+            self.__update_time_last_response(connection)
+            if self.__msg_is_ping(msg):
+                return
             self.__handler.handle_request(msg, connection)
+
+    def __msg_is_ping(self, msg):
+        return len(msg) == 0
 
     def __thread_check_connections(self):
         self.__check_connections_thread = threading.Thread(target=self.__check_connections)
@@ -120,6 +126,7 @@ class UDPHost:
         while True:
             self.__check_alive_connections()
             self.__check_alive_listeners()
+            self.__ping_connections()
             time.sleep(settings.ping_time)
 
     def get_ip(self):
@@ -195,23 +202,37 @@ class UDPHost:
 
         for connection in self.__connections:
             if not self.__check_connection_is_alive(connection):
-                # print('peer {} remove connection {} by timeout, last responce {}'.format(self._default_listener_port(), connection, time.time() - self.__connections[connection]['last_response']))
+                # print('peer {} remove connection {} by timeout, last response {}'.format(self._default_listener_port(), connection, time.time() - self.__connections[connection]['last_response']))
                 dead_connections.append(connection)
 
         for connection in dead_connections:
-            print('peer {} remove dead connection {} from list'.format(self._default_listener_port(), connection))
             del self.__connections[connection]
+            print('peer {} remove dead connection {} from list'.format(self._default_listener_port(), connection), self.__connections)
 
         # TODO shutdown listener_tread that are not used
         # print('peer {} has live peers'.format(self.port), self.peers)
 
+    def __ping_connections(self):
+        for connection in self.__connections:
+            last_request_time = self.__connections[connection].get('last_request')
+
+            print ('### {} check last request time {} from {}'.format(self._default_listener_port(), connection, last_request_time), self.__connections[connection])
+            if last_request_time is None or time.time() - last_request_time > settings.ping_time:
+                self.__ping(connection)
+
     def __check_connection_is_alive(self, connection):
-        connection_last_action_time = self.__connections[connection]['last_response']
-        return time.time() - connection_last_action_time < settings.peer_timeout
+        print ('### {} check connection {} last_response'.format(self._default_listener_port(), connection), self.__connections[connection])
+        last_response_time = self.__connections[connection].get('last_response')
+        if last_response_time is None:
+            last_request_time = self.__connections[connection]['last_request']
+            return time.time() - last_request_time > settings.peer_timeout
+        print ('### {} check connection {} is alive {}'.format(self._default_listener_port(), connection, time.time() - last_response_time), self.__connections[connection])
+        return time.time() - last_response_time < settings.peer_timeout
 
     def remove_connection(self, connection):
         print ('peer {} remove connection {}'.format(self._default_listener_port(), connection))
-        del self.__connections[connection]
+        if connection in self.__connections:
+            del self.__connections[connection]
 
-    def ping(self, connection):
+    def __ping(self, connection):
         self.send(b'', connection)

@@ -19,6 +19,8 @@ __version__ = [0, 0]
 # Signal Server for Traversal NAT
 
 
+# TODO handle shutdown thread
+
 class SignalHandler:
     keep_connection_flag = b''
     close_connection_flag = b'\01'
@@ -104,9 +106,6 @@ class SignalHandler:
     def _get_peer_connections(self, fingerprint):
         return self._peers.get(fingerprint, {}).get('connections', [])
 
-    def _msg_is_ping(self, msg):
-        return len(msg) == 0
-
     def _clean_connections(self):
         for fingerprint in self._peers:
             connections = self._get_peer_connections(fingerprint)
@@ -115,11 +114,14 @@ class SignalHandler:
                 if connection not in self._interface.get_connections():
                     continue
                 connections_tmp.append(connection)
-
-            if len(connections_tmp) == 0:
-                self._remove_peer(fingerprint)
-            else:
                 self._peers[fingerprint]['connections'] = connections_tmp
+
+    def _clean_peers(self):
+        fingerprints = list(self._peers)
+        for fingerprint in fingerprints:
+            connections = self._peers[fingerprint]['connections']
+            if len(connections) == 0:
+                self._remove_peer(fingerprint)
 
     def _pack_ip(self, ip):
         ip_data = b''
@@ -169,11 +171,6 @@ class SignalServerHandler(SignalHandler):
             self._pack_port(connection[host.UDPHost.peer_port])
 
     def handle_request(self, msg, connection):
-        if self._msg_is_ping(msg):
-            print ('signal server {} recive ping message from {}'.format(self._interface._default_listener_port(), connection))
-            self.__send_pong(connection)
-            return
-
         if not self.__check_hello(msg):
             print ('signal server {} remove peer {} wrong fingerprint'.format(self._interface._default_listener_port(), connection))
             self.__interface.remove_connection(connection)
@@ -183,7 +180,16 @@ class SignalServerHandler(SignalHandler):
         self.__put_in_queue(msg)
         self.__clean_old_connections()
         self._clean_connections()
+        self._clean_peers()
+        self.__clean_queue()
         self.__send_swarm_list()
+
+    def __clean_queue(self):
+        tmp_queue = []
+        for fingerprint in self.__queue:
+            if fingerprint in self._peers:
+                tmp_queue.append(fingerprint)
+        self.__queue = tmp_queue
 
     def __clean_old_connections(self):
         old, new = 0, 1
@@ -201,10 +207,6 @@ class SignalServerHandler(SignalHandler):
 
     def __check_hello(self, msg):
         return len(msg) == self.fingerprint_length
-
-    def __send_pong(self, connection):
-        print ('signal server {} send pong to {}'.format(self._interface._default_listener_port(), connection))
-        self._interface.ping(connection)
 
     def __send_swarm_list(self):
         old = 0
@@ -260,8 +262,20 @@ class SignalClientHandler(SignalHandler):
         self._peers = {}                  # {fingerprint: {'signal': True, 'connections': [peer, connection]}}
         self.__handler = external_handler
         self.__reload_external_handler_methods()
-        self.__thread_ping_peers()
         self.__connection_threads = {}
+        self.__thread_swarm_maker()
+
+    def __thread_swarm_maker(self):
+        self._wait_interface_socket()
+        self.__swarm_maker_thread = threading.Thread(target=self.__swarm_maker)
+        self.__swarm_maker_thread.start()
+
+    def __swarm_maker(self):
+        while True:
+            if len(self._interface.get_connections()) == 0:
+                # TODO find in settings swarm peers, connect
+                self.__request_swarm_peers()
+            time.sleep(settings.ping_time)
 
     def __reload_external_handler_methods(self):
         self.__external_handle_request = self.__handler.handle_request
@@ -296,20 +310,18 @@ class SignalClientHandler(SignalHandler):
         print ('signal client {} send hello to {}'.format(self._interface._default_listener_port(), connection))
         self._interface.send(self.get_fingerprint(), connection)
 
-    def __noop(self, msg, peer):
-        return True
-
     def handle_request(self, msg, connection):
         print ('### {} SignalClientHandler.handle_request from {}'.format(self._interface._default_listener_port(), connection))
+        self._clean_connections()
+        self._clean_peers()
+        self.__clean_request_connection_to_peer_threads()
+
         func = self.__define_request_type(msg, connection)
         if func and func(msg, connection) is True:
             return
         self.__external_handle_request(msg, connection)
 
     def __define_request_type(self, msg, connection):
-        if self._msg_is_ping(msg):
-            print ('### signal client received ping from {}'.format(connection))
-            return self.__noop
         if self.__msg_is_swarm_peer_list(msg, connection):
             return self.__handle_swarm_peer_list
 
@@ -456,6 +468,8 @@ class SignalClientHandler(SignalHandler):
         print ('signal client {} try connect to {}'.format(self._interface._default_listener_port(), peer))
 
     def __connection_thread_is_alive(self, fingerprint):
+        if fingerprint not in self.__connection_threads:
+            return False
         return self.__connection_threads[fingerprint]['alive']
 
     def __exit_from_connection_to_peer_thread(self, fingerprint):
@@ -463,10 +477,22 @@ class SignalClientHandler(SignalHandler):
             return
         self.__connection_threads[fingerprint]['alive'] = False
 
+    def __clean_request_connection_to_peer_threads(self):
+        dead_threads = []
+        for fingerprint in self.__connection_threads:
+            if fingerprint not in self._peers:
+                dead_threads.append(fingerprint)
+        for fingerprint in dead_threads:
+            self.__exit_from_connection_to_peer_thread(fingerprint)
+
     def __shutdoown_request_threads(self):
         threads = list(self.__connection_threads.keys())
         for fingerprint in threads:
             self.__shutdoown_request_connection_to_peer_thread(fingerprint)
+
+    def __shutdoown_swarm_maker_thread(self):
+        self.__swarm_maker_thread._tstate_lock = None
+        self.__swarm_maker_thread._stop()
 
     def __shutdoown_request_connection_to_peer_thread(self, fingerprint):
         if fingerprint not in self.__connection_threads:
@@ -479,7 +505,8 @@ class SignalClientHandler(SignalHandler):
         self.__remove_connection_thread(fingerprint)
 
     def __remove_connection_thread(self, fingerprint):
-        del self.__connection_threads[fingerprint]
+        if fingerprint in self.__connection_threads:
+            del self.__connection_threads[fingerprint]
 
     def __unpack_peers(self, msg):
         peers = []
@@ -527,41 +554,8 @@ class SignalClientHandler(SignalHandler):
     def __cut_data(self, data, length):
         return data[0: length], data[length:]
 
-    def __thread_ping_peers(self):
-        # FIXME relocate this thread to host __thread_check_connections remove
-        # pong from sstn remove pong from ss
-        self.__ping_peers_thread_is_alive = True
-        self.__ping_peers_thread = threading.Thread(target=self.__ping_peers)
-        self.__ping_peers_thread.start()
-
-    def __ping_peers(self):
-        self._wait_interface_socket()
-
-        while self.__ping_peers_thread_is_alive:
-            if len(self._interface.get_connections()) == 0:
-                self.__request_swarm_peers()
-
-            self._clean_connections()
-            #print ('### ping thread', self._interface._default_listener_port(), self._peers)
-            for fingerprint in self._peers:
-                #print ('### ping fingerprint', fingerprint)
-                connections = self._get_peer_connections(fingerprint)
-                for connection in connections:
-                    #print ('### ping connection', connection)
-                    self.__ping_connection(connection)
-            time.sleep(settings.ping_time)
-
-    def __ping_connection(self, connection):
-        last_request_time = self._interface.get_connection_last_request_time(connection)
-        if time.time() - last_request_time < settings.ping_time:
-            return
-        print ('### ping connection {} last response_time {}'.format(connection, time.time() - last_request_time))
-        self._interface.ping(connection)
-
     def close(self):
-        self.__ping_peers_thread_is_alive = False
-        self.__ping_peers_thread._tstate_lock = None
-        self.__ping_peers_thread._stop()
+        self.__shutdoown_swarm_maker_thread()
         self.__shutdoown_request_threads()
         print ('sctn close')
 

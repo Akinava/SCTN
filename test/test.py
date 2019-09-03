@@ -73,8 +73,8 @@ if __name__ == "__main__":
         time.sleep(0.1)
     print ('### the last peer has connect with swarm')
 
-    print ('test: lost connection with peer', peers[1]._default_listener_port())
-    peers[1].stop()
+    #print ('test: lost connection with peer', peers[1]._default_listener_port())
+    #peers[1].stop()
 
     try:
         while True:
