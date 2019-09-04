@@ -25,12 +25,12 @@ class Handler:
         self.__sctn = sstn.SignalClientHandler(interface, self)
 
     def handle_request(self, msg, connection):
-        print ('### Handler.handle_request')
+        # print ('### Handler.handle_request')
         # do something
         print ('swarm peer {} message {} bytes from connection {}'.format(self, len(msg), connection))
 
     def send(self, msg, connection):
-        print ('### Handler.send')
+        # print ('### Handler.send')
         self.__interface.send(msg, connection)
 
     def close(self):
@@ -73,8 +73,8 @@ if __name__ == "__main__":
         time.sleep(0.1)
     print ('### the last peer has connect with swarm')
 
-    #print ('test: lost connection with peer', peers[1]._default_listener_port())
-    #peers[1].stop()
+    # print ('test: lost connection with peer', peers[1]._default_listener_port())
+    # peers[1].stop()
 
     try:
         while True:
