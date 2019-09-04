@@ -113,6 +113,7 @@ class UDPHost:
             if self.__msg_is_ping(msg):
                 continue
             self.__handler.handle_request(msg, connection)
+        self.__shutdown_listener(listener_port)
 
     def __msg_is_ping(self, msg):
         return msg == self.ping_msg
@@ -139,19 +140,27 @@ class UDPHost:
 
     def __stop_listener(self, port):
         self.__listeners[port]['alive'] = False
+
+    def __shutdown_listeners(self):
+        ports = list(self.__listeners)
+        for port in ports:
+            self.__shutdown_listener(port)
+
+    def __shutdown_listener(self, port):
+        self.__listeners[port]['socket'].shutdown(socket.SOCK_DGRAM)
         self.__listeners[port]['socket'].close()
         self.__listeners[port]['thread']._tstate_lock = None
         self.__listeners[port]['thread']._stop()
-        del self.__listeners[port]['thread']
+        del self.__listeners[port]
 
-    def __stop_check_connections(self):
+    def __shutdown_check_connections(self):
         self.__check_connections_thread._tstate_lock = None
         self.__check_connections_thread._stop()
 
     def stop(self):
         self.__handler.close()
-        self.__stop_check_connections()
-        self.__stop_listeners()
+        self.__shutdown_check_connections()
+        self.__shutdown_listeners()
         print ('host stop')
 
     def __del__(self):
