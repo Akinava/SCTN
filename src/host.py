@@ -230,14 +230,15 @@ class UDPHost:
         return time.time() - last_response_time < settings.peer_timeout
 
     def remove_connection(self, connection):
-        last_request_time = time.time() - self.__connections[connection]['last_request']
-        last_response_time = time.time() - self.__connections[connection]['last_response']
+        last_request_time = time.time() - self.__connections[connection].get('last_request', time.time() - 100)
+        last_response_time = time.time() - self.__connections[connection].get('last_response', time.time() - 100)
         print ('peer {} remove connection {} last_request_time {} last_response_time {}'.format(
             self._default_listener_port(),
             connection,
             last_request_time, last_response_time))
         if connection in self.__connections:
             del self.__connections[connection]
+            self.__handler.remove_connection()
 
     def __ping(self, connection):
         self.send(self.ping_msg, connection)

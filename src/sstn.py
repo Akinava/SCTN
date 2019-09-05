@@ -66,7 +66,6 @@ class SignalHandler:
         return fingerprint
 
     def _get_rundom_sstn_peer_from_settings(self):
-        print ('### peers', settings.peers)
         if len(settings.peers) == 0:
             return None
         sstn_peer_list = self._get_sstn_list_from_settings()
@@ -115,7 +114,7 @@ class SignalHandler:
                 if connection not in self._interface.get_connections():
                     continue
                 connections_tmp.append(connection)
-                self._peers[fingerprint]['connections'] = connections_tmp
+            self._peers[fingerprint]['connections'] = connections_tmp
 
     def _clean_peers(self):
         fingerprints = list(self._peers)
@@ -185,6 +184,11 @@ class SignalServerHandler(SignalHandler):
         self.__put_in_queue(msg)
         self.__send_swarm_list()
 
+    def remove_connection(self):
+        self._clean_peers_connections()
+        self._clean_peers()
+        self.__clean_queue()
+
     def __clean_queue(self):
         tmp_queue = []
         for fingerprint in self.__queue:
@@ -205,6 +209,9 @@ class SignalServerHandler(SignalHandler):
             self.__queue.remove(fingerprint)
         self.__queue.append(fingerprint)
 
+    def __remove_from_queue(self, fingerprint):
+        self.__queue.remove(fingerprint)
+
     def __check_hello(self, msg):
         return len(msg) == self.fingerprint_length
 
@@ -214,7 +221,7 @@ class SignalServerHandler(SignalHandler):
 
         if self.__oversupply_of_peers():
             leave_msg = self.__add_close_connection_flag(msg)
-            leave_msg = self.__sign_msg(leave_msg) + leave_msg
+            leave_msg = self._sign_msg(leave_msg) + leave_msg
             leave_peer_fingerprint = self.__queue[old]
             leave_peer_connection = self._get_peer_connections(leave_peer_fingerprint)[old]
             print ('signal server {} send swarm (size {} peers) to peer {} and close connect'.format(
@@ -223,6 +230,7 @@ class SignalServerHandler(SignalHandler):
                 leave_peer_connection))
             self._interface.send(leave_msg, leave_peer_connection)
             self._remove_peer(leave_peer_fingerprint)
+            self.__remove_from_queue(leave_peer_fingerprint)
 
         msg = self._sign_msg(msg) + msg
         for fingerprint in self.__queue:
@@ -286,6 +294,7 @@ class SignalClientHandler(SignalHandler):
         self.__external_handle_request = self.__handler.handle_request
         self.__handler.handle_request = self.handle_request
         self.__handler.is_ready = self.is_ready
+        self.__handler.remove_connection = self.remove_connection
 
     def is_ready(self):
         return self.__peer_has_connection_with_swarm()
@@ -379,10 +388,20 @@ class SignalClientHandler(SignalHandler):
     def __handle_hello(self, fingerprint, connection):
         print ('signal client {} received hello from {}'.format(self._interface._default_listener_port(), connection))
         self.__exit_from_connection_to_peer_thread(fingerprint)
+        if self.__check_hello_from_itself(fingerprint):
+            self._interface.remove_connection(connection)
+            return True
         msg = self.__make_sstn_list_msg()
         print ('signal client {} send sstn list to {}'.format(self._interface._default_listener_port(), connection))
         self._interface.send(msg, connection)
         return True
+
+    def remove_connection(self):
+        self._clean_peers_connections()
+        self._clean_peers()
+
+    def __check_hello_from_itself(self, fingerprint):
+        return fingerprint == self.get_fingerprint()
 
     def __make_sstn_list_msg(self):
         msg = b''
@@ -437,9 +456,11 @@ class SignalClientHandler(SignalHandler):
         settings.add_peer(peer)
 
     def __peer_involved_in_connection(self, peers):
-        if (self._interface.peer_itself(peers[0]) or self._interface.peer_itself(peers[-1])) and \
-           len(peers) > 1:
+        if len(peers) > 1 and \
+           peers[0] != peers[-1] and \
+           (self._interface.peer_itself(peers[0]) or self._interface.peer_itself(peers[-1])):
             return True
+
         return False
 
     def __get_swarm_peer_for_connection(self, peers):

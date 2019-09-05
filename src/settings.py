@@ -17,14 +17,10 @@ def pack_peers():
 
 
 def unpack_peers(data):
-    print ('## unpack peers start')
-    global peers
     peers_from_file = json.loads(data)
-    print ('#### peers json', peers_from_file)
     for fingerprint_b58 in peers_from_file:
         fingerprint = pycrypto.B58().unpack(fingerprint_b58)
         peers[fingerprint] = peers_from_file[fingerprint_b58]
-    print ('## unpack peers', peers)
 
 
 def import_config():
@@ -35,11 +31,9 @@ def import_config():
 
 
 def import_peers():
-    print ('### peers file is', peers_file)
     if os.path.isfile(peers_file):
         with open(peers_file, 'r') as f:
             try:
-                print ('### read peers_file')
                 unpack_peers(f.read())
             except json.decoder.JSONDecodeError:
                 pass
@@ -62,4 +56,3 @@ def save_peers():
 
 import_config()
 import_peers()
-print ('### settings peers', peers)
