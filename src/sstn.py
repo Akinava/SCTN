@@ -66,6 +66,7 @@ class SignalHandler:
         return fingerprint
 
     def _get_rundom_sstn_peer_from_settings(self):
+        print ('### peers', settings.peers)
         if len(settings.peers) == 0:
             return None
         sstn_peer_list = self._get_sstn_list_from_settings()
@@ -570,8 +571,9 @@ class SignalClientHandler(SignalHandler):
 
 
 if __name__ == "__main__":
-    print('start sstn')
+    print ('start sstn')
     signal_server = host.UDPHost(handler=SignalServerHandler, host='', port=10002)
+    print ('sstn fingerprint', pycrypto.B58().pack(signal_server.get_fingerprint()))
 
     try:
         while True:
@@ -579,4 +581,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         signal_server.stop()
 
-    print('stop sstn')
+    print ('stop sstn')
