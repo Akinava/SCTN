@@ -23,11 +23,12 @@ import settings
 class Handler:
     def __init__(self, interface):
         self.__sctn = sstn.SignalClientHandler(interface, self)
+        self.__interface = interface
 
     def handle_request(self, msg, connection):
         # print ('### Handler.handle_request')
         # do something
-        print ('swarm peer {} message {} bytes from connection {}'.format(self, len(msg), connection))
+        print ('swarm peer {} message {} bytes from connection {}'.format(self.__interface._default_listener_port(), len(msg), connection))
 
     def send(self, msg, connection):
         # print ('### Handler.send')
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     peers = []
     last_peer = -1
 
+    '''
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
     peers.append(signal_server_0)
     # save fingerprint to peers
@@ -64,6 +66,7 @@ if __name__ == "__main__":
              'port': 10002,
              'fingerprint': signal_server_0.get_fingerprint(),
              'signal': True})
+    '''
 
     # run NP
     for port in range(10003, 10005):
@@ -73,8 +76,8 @@ if __name__ == "__main__":
         time.sleep(0.1)
     print ('the last peer has connect with swarm')
 
-    #print ('test: lost connection with peer', peers[1]._default_listener_port())
-    #peers[1].stop()
+    # print ('test: lost connection with peer', peers[1]._default_listener_port())
+    # peers[1].stop()
 
     try:
         while True:
@@ -85,5 +88,5 @@ if __name__ == "__main__":
     for h in peers:
         h.stop()
 
-    rm_peers()
+    # rm_peers()
     print ('end test')

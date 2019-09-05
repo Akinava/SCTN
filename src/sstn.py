@@ -106,7 +106,7 @@ class SignalHandler:
     def _get_peer_connections(self, fingerprint):
         return self._peers.get(fingerprint, {}).get('connections', [])
 
-    def _clean_connections(self):
+    def _clean_peers_connections(self):
         for fingerprint in self._peers:
             connections = self._get_peer_connections(fingerprint)
             connections_tmp = []
@@ -175,12 +175,13 @@ class SignalServerHandler(SignalHandler):
             self.__interface.remove_connection(connection)
             return
 
-        self._save_peer(msg, connection)
-        self.__put_in_queue(msg)
+        self._clean_peers_connections()
         self.__clean_old_connections()
-        self._clean_connections()
         self._clean_peers()
         self.__clean_queue()
+
+        self._save_peer(msg, connection)
+        self.__put_in_queue(msg)
         self.__send_swarm_list()
 
     def __clean_queue(self):
@@ -191,13 +192,12 @@ class SignalServerHandler(SignalHandler):
         self.__queue = tmp_queue
 
     def __clean_old_connections(self):
-        old, new = 0, 1
+        old = 0
         for fingerprint in self._peers:
             connections = self._peers[fingerprint]['connections']
-            if len(connections) == 1:
-                continue
-            self._interface.remove_connection(connections[old])
-            self._peers[fingerprint]['connections'] = [connections[new]]
+            while len(connections) > 1:
+                self._interface.remove_connection(connections[old])
+                self._peers[fingerprint]['connections'] = connections[1:]
 
     def __put_in_queue(self, fingerprint):
         if fingerprint in self.__queue:
@@ -322,7 +322,7 @@ class SignalClientHandler(SignalHandler):
 
     def handle_request(self, msg, connection):
         # print ('### {} SignalClientHandler.handle_request from {}'.format(self._interface._default_listener_port(), connection))
-        self._clean_connections()
+        self._clean_peers_connections()
         self._clean_peers()
         self.__clean_request_connection_to_peer_threads()
 
