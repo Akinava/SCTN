@@ -154,7 +154,6 @@ class SignalServerHandler(SignalHandler):
 
     def __connect_to_swarm(self):
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
-
         if sstn_peer is None:
             # print ('signal server {} no sstn to request a swarm'.format(self._interface))
             return
@@ -279,9 +278,7 @@ class SignalClientHandler(SignalHandler):
             if len(self._interface.get_connections()) < settings.min_peer_connections:
                 # TODO if peer in swarm request peer connect
                 # TODO if swarm peers in settings, connect to them
-                if not self.__peer_has_connection_with_sstn():
-                    print ('signal client {} request swarm from sstn'.format(self._interface._default_listener_port()))
-                    self.__call_peers_by_sstn()
+                self.__call_peers_by_sstn()
             time.sleep(settings.ping_time)
 
     def __reload_external_handler_methods(self):
@@ -307,11 +304,13 @@ class SignalClientHandler(SignalHandler):
         return False
 
     def __call_peers_by_sstn(self):
+        if self.__peer_has_connection_with_sstn():
+            return
+        print ('signal client {} request swarm from sstn'.format(self._interface._default_listener_port()))
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
             print ('signal client {} no sstn in peers file'.format(self._interface._default_listener_port()))
             return
-        # TODO check if peer has connect with sstn_peer: return
         self.__send_hello(sstn_peer)
 
     def __send_hello(self, peer):

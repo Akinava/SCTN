@@ -147,7 +147,6 @@ class UDPHost:
             self.__shutdown_listener(port)
 
     def __shutdown_listener(self, port):
-        self.__listeners[port]['socket'].shutdown(socket.SOCK_DGRAM)
         self.__listeners[port]['socket'].close()
         self.__listeners[port]['thread']._tstate_lock = None
         self.__listeners[port]['thread']._stop()
