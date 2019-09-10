@@ -33,9 +33,9 @@ class UDPHost:
         self.host = host
         self.__connections = {}  # {(ip, port, incoming_port): {'MTU': MTU, 'last_response': timestamp}}
         self.__listeners = {}    # {port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
+        self.__handler = handler(self)
         self.__rize_peer()
         self.__thread_check_connections()
-        self.__handler = handler(self)
 
     def get_connections(self):
         return self.__connections.keys()

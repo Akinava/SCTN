@@ -101,7 +101,8 @@ class SignalHandler:
         connections = self._peers[fingerprint]['connections']
         for connection in connections:
             self._interface.remove_connection(connection)
-        del self._peers[fingerprint]
+        if fingerprint in self._peers:
+            del self._peers[fingerprint]
 
     def _get_peer_connections(self, fingerprint):
         return self._peers.get(fingerprint, {}).get('connections', [])
@@ -142,7 +143,6 @@ class SignalServerHandler(SignalHandler):
     def __init__(self, interface):
         self._setup_ecdsa()
         self._interface = interface
-        self._wait_interface_socket()
         self._peers = {}
         # request self external port and client
         self.__thread_connect_to_swarm()
@@ -153,6 +153,7 @@ class SignalServerHandler(SignalHandler):
         connect_to_swarm_thread.start()
 
     def __connect_to_swarm(self):
+        self._wait_interface_socket()
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
             # print ('signal server {} no sstn to request a swarm'.format(self._interface))
@@ -210,7 +211,8 @@ class SignalServerHandler(SignalHandler):
         self.__queue.append(fingerprint)
 
     def __remove_from_queue(self, fingerprint):
-        self.__queue.remove(fingerprint)
+        if fingerprint in self.__queue:
+            self.__queue.remove(fingerprint)
 
     def __check_hello(self, msg):
         return len(msg) == self.fingerprint_length
@@ -278,11 +280,11 @@ class SignalClientHandler(SignalHandler):
         self.__swarm_watcher()
 
     def __swarm_watcher(self):
-        self._wait_interface_socket()
         self.__swarm_maker_thread = threading.Thread(target=self.__swarm_maker)
         self.__swarm_maker_thread.start()
 
     def __swarm_maker(self):
+        self._wait_interface_socket()
         while True:
             if len(self._interface.get_connections()) < settings.min_peer_connections:
                 # TODO if peer in swarm request peer connect
