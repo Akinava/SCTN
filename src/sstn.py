@@ -598,7 +598,6 @@ class SignalClientHandler(SignalHandler):
 if __name__ == "__main__":
     print ('start sstn')
     signal_server = host.UDPHost(handler=SignalServerHandler, host='', port=10002)
-    print ('sstn fingerprint', pycrypto.B58().pack(signal_server.get_fingerprint()))
 
     try:
         while True:
