@@ -200,10 +200,6 @@ class UDPHost:
             if port not in working_ports:
                 self.__stop_listener(port)
 
-    # FIXME could be this function needed only for test
-    def get_fingerprint(self):
-        return self.__handler.get_fingerprint()
-
     def __check_alive_connections(self):
         dead_connections = []
 

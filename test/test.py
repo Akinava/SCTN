@@ -53,6 +53,10 @@ def stop_thread(server_thread):
     server_thread._stop()
 
 
+def get_fingerprint(self):
+    return self.__handler.get_fingerprint()
+
+
 if __name__ == "__main__":
     print ('start test')
 
@@ -62,6 +66,7 @@ if __name__ == "__main__":
 
     '''
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
+    signal_server_0.get_fingerprint = get_fingerprint
     peers.append(signal_server_0)
     # save fingerprint to peers
     if not os.path.isfile(settings.peers_file):

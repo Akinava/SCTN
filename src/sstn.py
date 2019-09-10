@@ -457,16 +457,18 @@ class SignalClientHandler(SignalHandler):
             return
         settings.add_peer(peer)
 
+    def __peer_itself(self, peer):
+        return peer['fingerprint'] == self.get_fingerprint()
+
     def __peer_involved_in_connection(self, peers):
         if len(peers) > 1 and \
-           peers[0] != peers[-1] and \
-           (self._interface.peer_itself(peers[0]) or self._interface.peer_itself(peers[-1])):
+           (self.__peer_itself(peers[0]) or self.__peer_itself(peers[-1])):
             return True
 
         return False
 
     def __get_swarm_peer_for_connection(self, peers):
-        if self._interface.peer_itself(peers[0]):
+        if self.__peer_itself(peers[0]):
             return peers[-1]
         return peers[0]
 
