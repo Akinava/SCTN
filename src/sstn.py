@@ -127,7 +127,7 @@ class SignalHandler:
     def _pack_ip(self, ip):
         ip_data = b''
         for octet in ip.split('.'):
-            ip_data += chr(int(octet)).encode('utf8')
+            ip_data += struct.pack('>B', int(octet))
         return ip_data
 
     def _pack_port(self, port):
