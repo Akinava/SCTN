@@ -10,6 +10,8 @@ import json
 import host
 import pycrypto
 import settings
+from settings import logger
+
 
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
@@ -596,7 +598,7 @@ class SignalClientHandler(SignalHandler):
 
 
 if __name__ == "__main__":
-    print ('start sstn')
+    logger.info('start sstn')
     signal_server = host.UDPHost(handler=SignalServerHandler, host='', port=10002)
 
     try:
@@ -605,4 +607,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         signal_server.stop()
 
-    print ('stop sstn')
+    logger.info('stop sstn')

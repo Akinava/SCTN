@@ -4,6 +4,7 @@ import errno
 import threading
 import time
 import settings
+from settings import logger
 
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
@@ -104,7 +105,7 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
-        print ('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
+        logger.info('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
