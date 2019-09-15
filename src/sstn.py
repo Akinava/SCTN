@@ -334,11 +334,13 @@ class SignalClientHandler(SignalHandler):
             return
         self.__send_hello(sstn_peer)
 
-    def __send_hello(self, peer):
+    def __send_hello(self, peer, listener_port=None):
         fingerprint = peer['fingerprint']
-        connection = self._interface.set_peer_connection(peer)
+        if listener_port is None:
+            connection = self._interface.set_peer_connection(peer)
+            listener_port = self._interface._default_listener_port()
         self._save_peer(fingerprint, connection, peer.get('signal', False))
-        logger.info('signal client {} send hello to {}'.format(self._interface._default_listener_port(), connection))
+        logger.info('signal client {} send hello to {}'.format(listener_port, connection))
         self._interface.send(self.get_fingerprint(), connection)
 
     def handle_request(self, msg, connection):
@@ -397,7 +399,7 @@ class SignalClientHandler(SignalHandler):
 
     def __handle_hello(self, fingerprint, connection):
         logger.info('signal client {} received hello from {}'.format(self._interface._default_listener_port(), connection))
-        self.__exit_from_connection_to_peer_thread(fingerprint)
+        self.__exit_from_connection_thread(fingerprint)
         if self.__check_hello_from_itself(fingerprint):
             self._interface.remove_connection(connection)
             return True
@@ -443,7 +445,7 @@ class SignalClientHandler(SignalHandler):
         self.__save_sstn_peers(peers)
         logger.info('signal client {} received sstn {} peers from {}'.format(self._interface._default_listener_port(), len(peers), connection))
         fingerprint = self.__get_fingerprint_from_msg(msg)
-        self.__exit_from_connection_to_peer_thread(fingerprint)
+        self.__exit_from_connection_thread(fingerprint)
         return True
 
     def __handle_peer_list(self, msg):
@@ -486,9 +488,9 @@ class SignalClientHandler(SignalHandler):
 
         peer_to_connect = self.__get_swarm_peer_for_connection(peers)
         fingerprint = peer_to_connect['fingerprint']
-        self.__shutdoown_request_connection_to_peer_thread(fingerprint)
+        self.__shutdoown_request_thread(fingerprint)
         connect_to_peer_tread = threading.Thread(
-            name='connect_to_peer {}'.format(pycrypto.B58().pack(peer_to_connect['fingerprint'])),
+            name='connect_to_peer {}'.format(pycrypto.B58().pack(fingerprint)[:6]),
             target=self.__connect_to_peer,
             args=(peer_to_connect,))
         thread_data = {'thread': connect_to_peer_tread, 'alive': True}
@@ -496,6 +498,34 @@ class SignalClientHandler(SignalHandler):
         connect_to_peer_tread.start()
 
     def __connect_to_peer(self, peer):
+        self.__direct_connect(peer)
+
+        if self.__check_connection_is_done(peer):
+            self.__shootdown_connection_thread(peer)
+            return
+
+        self.__hole_pinching(peer)
+
+    def __hole_pinching(self, peer):
+        # TODO probably better approach will be to send request by 10 attempts
+        for hole in range(settings.holes):
+            src_port = self._interface.rize_listener()
+            for dst_port in range(peer['port']+1, peer['port']+1+settings.holes):
+                print ('pinching', peer, dst_port, src_port)
+
+
+    def __check_connection_is_done(self, peer):
+        fingerprint = peer['fingerprint']
+        if fingerprint not in self.__connection_threads:
+            return True
+        return self.__connection_threads[fingerprint]['alive'] is False
+
+    def __shootdown_connection_thread(self, peer):
+        fingerprint = peer['fingerprint']
+        if fingerprint in self.__connection_threads:
+            del self.__connection_threads[fingerprint]
+
+    def __direct_connect(self, peer):
         fingerprint = peer['fingerprint']
         for attempt in range(settings.attempts_connect_to_peer):
             logger.info('attempt {} connect {} to {} directly'.format(
@@ -505,21 +535,11 @@ class SignalClientHandler(SignalHandler):
                  peer['port'])))
             self.__send_hello(peer)
             time.sleep(settings.ping_time)
-            if self.__connection_thread_is_alive(fingerprint) is False:
-                self.__remove_connection_thread(fingerprint)
+
+            if self.__check_connection_is_done(peer):
                 return
 
-        # TODO if no connection:
-        #   do UDP hole pinching
-        #   UDP hole pinching can be only if that peer came sstn
-        logger.info('signal client {} try connect to {}'.format(self._interface._default_listener_port(), peer))
-
-    def __connection_thread_is_alive(self, fingerprint):
-        if fingerprint not in self.__connection_threads:
-            return False
-        return self.__connection_threads[fingerprint]['alive']
-
-    def __exit_from_connection_to_peer_thread(self, fingerprint):
+    def __exit_from_connection_thread(self, fingerprint):
         if fingerprint not in self.__connection_threads:
             return
         self.__connection_threads[fingerprint]['alive'] = False
@@ -530,20 +550,21 @@ class SignalClientHandler(SignalHandler):
             if fingerprint not in self._peers:
                 dead_threads.append(fingerprint)
         for fingerprint in dead_threads:
-            self.__exit_from_connection_to_peer_thread(fingerprint)
+            self.__exit_from_connection_thread(fingerprint)
 
     def __shutdoown_request_threads(self):
         threads = list(self.__connection_threads.keys())
         for fingerprint in threads:
-            self.__shutdoown_request_connection_to_peer_thread(fingerprint)
+            self.__shutdoown_request_thread(fingerprint)
 
     def __shutdoown_swarm_maker_thread(self):
         self.__swarm_maker_thread._tstate_lock = None
         self.__swarm_maker_thread._stop()
 
-    def __shutdoown_request_connection_to_peer_thread(self, fingerprint):
+    def __shutdoown_request_thread(self, fingerprint):
         if fingerprint not in self.__connection_threads:
             return
+
         thread_data = self.__connection_threads[fingerprint]
         thread_data['alive'] = False
         if thread_data['thread'].isAlive():

@@ -35,7 +35,7 @@ class UDPHost:
         self.__connections = {}  # {(ip, port, incoming_port): {'MTU': MTU, 'last_response': timestamp}}
         self.__listeners = {}    # {port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
         self.__handler = handler(self)
-        self.__rize_peer()
+        self.rize_listener()
         self.__thread_check_connections()
 
     def get_connections(self):
@@ -73,6 +73,10 @@ class UDPHost:
         socket_is_bound = False
         port = self.port
         while socket_is_bound is False:
+            if port in self.__listeners:
+                port += 1
+                continue
+
             try:
                 sock.bind((self.host, port))
                 socket_is_bound = True
@@ -85,19 +89,20 @@ class UDPHost:
                         port = self.min_user_port
         return port
 
-    def __rize_peer(self):
+    def rize_listener(self):
         port = self.__bind_socket(self.__make_socket())
         self.__start_listener_tread(port)
+        return port
 
     def __start_listener_tread(self, listener_port):
         listener_tread = threading.Thread(
             name='listener {}'.format(self.port),
             target=self.__listener,
             args=(listener_port,))
+        listener_tread.start()
         self.__update_listener_data(
             listener_port,
             {'thread': listener_tread, 'alive': True})
-        listener_tread.start()
 
     def __update_listener_data(self, port, data):
         if port not in self.__listeners:
@@ -231,10 +236,11 @@ class UDPHost:
     def remove_connection(self, connection):
         last_request_time = time.time() - self.__connections[connection].get('last_request', time.time() - 100)
         last_response_time = time.time() - self.__connections[connection].get('last_response', time.time() - 100)
-        logger.info('peer {} remove connection {} last_request_time {} last_response_time {}'.format(
+        logger.info('peer {} remove connection {} last_request_time {:.2f} last_response_time {:.2f}'.format(
             self._default_listener_port(),
             connection,
-            last_request_time, last_response_time))
+            last_request_time,
+            last_response_time))
         if connection in self.__connections:
             del self.__connections[connection]
             self.__handler.remove_connection()

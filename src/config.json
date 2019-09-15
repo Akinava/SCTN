@@ -8,5 +8,6 @@
   "min_UDP_MTU": 508,
   "peer_timeout": 13,
   "ping_time": 5,
-  "attempts_connect_to_peer": 3
+  "attempts_connect_to_peer": 3,
+  "holes": 256
 }
