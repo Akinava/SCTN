@@ -38,6 +38,8 @@ class SignalHandler:
         self._read_ecdsa_from_shadow()
         if self._ecdsa is None:
             self._ecdsa = pycrypto.ECDSA()
+        logger.info('setup ECDSA, fingerprint {}'.format(
+            pycrypto.B58().pack(self.get_fingerprint())))
 
     def _read_ecdsa_from_shadow(self):
         if os.path.isfile(settings.shadow_file):
@@ -97,7 +99,6 @@ class SignalHandler:
             self._peers[fingerprint]['connections'].append(connection)
         if signal:
             self._peers[fingerprint]['signal'] = True
-        # print ('siganl peer {} add {} to peer list'.format(self._interface._default_listener_port(), connection), self._peers)
 
     def _remove_peer(self, fingerprint):
         connections = self._peers[fingerprint]['connections']
@@ -151,21 +152,24 @@ class SignalServerHandler(SignalHandler):
         self.__queue = []
 
     def __thread_connect_to_swarm(self):
-        connect_to_swarm_thread = threading.Thread(target=self.__connect_to_swarm)
+        connect_to_swarm_thread = threading.Thread(
+            name='connect to swarm',
+            target=self.__connect_to_swarm
+        )
         connect_to_swarm_thread.start()
 
     def __connect_to_swarm(self):
         self._wait_interface_socket()
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
-            # print ('signal server {} no sstn to request a swarm'.format(self._interface))
+            logger.warning('signal server {} no sstn to request a swarm'.format(self._interface._default_listener_port()))
             return
 
         # TODO
         # connect to sstn
         # request swarm
         # stay or leave
-        # print ('signal server {} connect to swarm is finished'.format(self._interface._default_listener_port()))
+        logger.info('signal server {} connect to swarm is finished'.format(self._interface._default_listener_port()))
 
     def __pack_peer(self, fingerprint):
         connection = self._peers[fingerprint]['connections'][0]
@@ -174,7 +178,7 @@ class SignalServerHandler(SignalHandler):
 
     def handle_request(self, msg, connection):
         if not self.__check_hello(msg):
-            print ('signal server {} remove peer {} wrong fingerprint'.format(self._interface._default_listener_port(), connection))
+            logger.info('signal server {} remove peer {} wrong fingerprint'.format(self._interface._default_listener_port(), connection))
             self.__interface.remove_connection(connection)
             return
 
@@ -228,7 +232,7 @@ class SignalServerHandler(SignalHandler):
             leave_msg = self._sign_msg(leave_msg) + leave_msg
             leave_peer_fingerprint = self.__queue[old]
             leave_peer_connection = self._get_peer_connections(leave_peer_fingerprint)[old]
-            print ('signal server {} send swarm (size {} peers) to peer {} and close connect'.format(
+            logger.info('signal server {} send swarm (size {} peers) to peer {} and close connect'.format(
                 self._interface._default_listener_port(),
                 len(self.__queue),
                 leave_peer_connection))
@@ -239,7 +243,7 @@ class SignalServerHandler(SignalHandler):
         msg = self._sign_msg(msg) + msg
         for fingerprint in self.__queue:
             connection = self._get_peer_connections(fingerprint)[old]
-            print ('signal server {} send swarm (size {} peers) to peer {}'.format(self._interface._default_listener_port(), len(self.__queue), connection))
+            logger.info('signal server {} send swarm (size {} peers) to peer {}'.format(self._interface._default_listener_port(), len(self.__queue), connection))
             self._interface.send(msg, connection)
 
     def __add_close_connection_flag(self, msg):
@@ -256,7 +260,7 @@ class SignalServerHandler(SignalHandler):
         return len(self.__queue) > settings.min_peer_connections
 
     def close(self):
-        print ('sstn save the key')
+        logger.info('sstn save the key')
         with open(settings.shadow_file, 'w') as shadow_file:
             priv_key = self._ecdsa.get_priv_key()
             priv_key_b58 = pycrypto.B58().pack(priv_key)
@@ -282,7 +286,10 @@ class SignalClientHandler(SignalHandler):
         self.__swarm_watcher()
 
     def __swarm_watcher(self):
-        self.__swarm_maker_thread = threading.Thread(target=self.__swarm_maker)
+        self.__swarm_maker_thread = threading.Thread(
+            name='swarm maker',
+            target=self.__swarm_maker
+        )
         self.__swarm_maker_thread.start()
 
     def __swarm_maker(self):
@@ -320,10 +327,10 @@ class SignalClientHandler(SignalHandler):
     def __call_peers_by_sstn(self):
         if self.__peer_has_connection_with_sstn():
             return
-        print ('signal client {} request swarm from sstn'.format(self._interface._default_listener_port()))
+        logger.info('signal client {} request swarm from sstn'.format(self._interface._default_listener_port()))
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
-            print ('signal client {} no sstn in peers file'.format(self._interface._default_listener_port()))
+            logger.warning('signal client {} no sstn in peers file'.format(self._interface._default_listener_port()))
             return
         self.__send_hello(sstn_peer)
 
@@ -331,11 +338,10 @@ class SignalClientHandler(SignalHandler):
         fingerprint = peer['fingerprint']
         connection = self._interface.set_peer_connection(peer)
         self._save_peer(fingerprint, connection, peer.get('signal', False))
-        print ('signal client {} send hello to {}'.format(self._interface._default_listener_port(), connection))
+        logger.info('signal client {} send hello to {}'.format(self._interface._default_listener_port(), connection))
         self._interface.send(self.get_fingerprint(), connection)
 
     def handle_request(self, msg, connection):
-        # print ('### {} SignalClientHandler.handle_request from {}'.format(self._interface._default_listener_port(), connection))
         self._clean_peers_connections()
         self._clean_peers()
         self.__clean_request_connection_to_peer_threads()
@@ -390,13 +396,13 @@ class SignalClientHandler(SignalHandler):
         return pycrypto.sha256(open_key)
 
     def __handle_hello(self, fingerprint, connection):
-        print ('signal client {} received hello from {}'.format(self._interface._default_listener_port(), connection))
+        logger.info('signal client {} received hello from {}'.format(self._interface._default_listener_port(), connection))
         self.__exit_from_connection_to_peer_thread(fingerprint)
         if self.__check_hello_from_itself(fingerprint):
             self._interface.remove_connection(connection)
             return True
         msg = self.__make_sstn_list_msg()
-        print ('signal client {} send sstn list to {}'.format(self._interface._default_listener_port(), connection))
+        logger.info('signal client {} send sstn list to {}'.format(self._interface._default_listener_port(), connection))
         self._interface.send(msg, connection)
         return True
 
@@ -421,10 +427,10 @@ class SignalClientHandler(SignalHandler):
     def __handle_swarm_peer_list(self, msg, connection):
         peers = self.__handle_peer_list(msg)
         if peers is False:
-            print ('signal client {} bad mesg from swarm peer {}'.format(self._interface._default_listener_port(), connection))
+            logger.info('signal client {} bad mesg from swarm peer {}'.format(self._interface._default_listener_port(), connection))
             return False
         self.__save_peers_to_settings(peers)
-        print ('signal client {} received swarm peers from {} got {} peers'.format(self._interface._default_listener_port(), connection, len(peers)))
+        logger.info('signal client {} received swarm peers from {} got {} peers'.format(self._interface._default_listener_port(), connection, len(peers)))
         self.__handle_connection(msg, connection)
         self.__thread_connect_to_peer(peers)
         return True
@@ -432,10 +438,10 @@ class SignalClientHandler(SignalHandler):
     def __handle_sstn_peer_list(self, msg, connection):
         peers = self.__handle_peer_list(msg)
         if peers is False:
-            print ('signal client {} bed mesg from sstn {}'.format(self._interface._default_listener_port(), connection))
+            logger.info('signal client {} bed mesg from sstn {}'.format(self._interface._default_listener_port(), connection))
             return False
         self.__save_sstn_peers(peers)
-        print ('signal client {} received sstn {} peers from {}'.format(self._interface._default_listener_port(), len(peers), connection))
+        logger.info('signal client {} received sstn {} peers from {}'.format(self._interface._default_listener_port(), len(peers), connection))
         fingerprint = self.__get_fingerprint_from_msg(msg)
         self.__exit_from_connection_to_peer_thread(fingerprint)
         return True
@@ -482,6 +488,7 @@ class SignalClientHandler(SignalHandler):
         fingerprint = peer_to_connect['fingerprint']
         self.__shutdoown_request_connection_to_peer_thread(fingerprint)
         connect_to_peer_tread = threading.Thread(
+            name='connect_to_peer {}'.format(pycrypto.B58().pack(peer_to_connect['fingerprint'])),
             target=self.__connect_to_peer,
             args=(peer_to_connect,))
         thread_data = {'thread': connect_to_peer_tread, 'alive': True}
@@ -491,7 +498,11 @@ class SignalClientHandler(SignalHandler):
     def __connect_to_peer(self, peer):
         fingerprint = peer['fingerprint']
         for attempt in range(settings.attempts_connect_to_peer):
-            print ('### attempt {} connect {} to {} directly'.format(attempt, self._interface._default_listener_port(), (peer['ip'], peer['port'])))
+            logger.info('attempt {} connect {} to {} directly'.format(
+                attempt,
+                self._interface._default_listener_port(),
+                (peer['ip'],
+                 peer['port'])))
             self.__send_hello(peer)
             time.sleep(settings.ping_time)
             if self.__connection_thread_is_alive(fingerprint) is False:
@@ -501,7 +512,7 @@ class SignalClientHandler(SignalHandler):
         # TODO if no connection:
         #   do UDP hole pinching
         #   UDP hole pinching can be only if that peer came sstn
-        print ('signal client {} try connect to {}'.format(self._interface._default_listener_port(), peer))
+        logger.info('signal client {} try connect to {}'.format(self._interface._default_listener_port(), peer))
 
     def __connection_thread_is_alive(self, fingerprint):
         if fingerprint not in self.__connection_threads:
@@ -574,7 +585,7 @@ class SignalClientHandler(SignalHandler):
         recived_byte_flag_close_sstn_connection = self.__msg_has_close_connection_flag(msg)
         if recived_byte_flag_close_sstn_connection is False:
             return
-        print ('signal client {} got close connection flag from {}'.format(self._interface._default_listener_port(), connection))
+        logger.info('signal client {} got close connection flag from {}'.format(self._interface._default_listener_port(), connection))
         fingerprint = self.__get_fingerprint_from_msg(msg)
         self._remove_peer(fingerprint)
 
@@ -594,7 +605,7 @@ class SignalClientHandler(SignalHandler):
     def close(self):
         self.__shutdoown_swarm_maker_thread()
         self.__shutdoown_request_threads()
-        print ('sctn close')
+        logger.info('sctn close')
 
 
 if __name__ == "__main__":

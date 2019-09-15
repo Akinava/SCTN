@@ -75,3 +75,6 @@ def setup_settings():
     setup_logger()
     import_config()
     import_peers()
+
+
+settings.add_peer = add_peer

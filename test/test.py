@@ -18,6 +18,7 @@ sys.path.append(src_dir)
 import host
 import sstn
 import settings
+from settings import logger
 
 
 # TODO test case sstn server shutdown
@@ -30,17 +31,17 @@ class Handler:
         self.__interface = interface
 
     def handle_request(self, msg, connection):
-        # print ('### Handler.handle_request')
+        logger.debug('Handler.handle_request')
         # do something
-        print ('swarm peer {} message {} bytes from connection {}'.format(self.__interface._default_listener_port(), len(msg), connection))
+        logger.info('swarm peer {} message {} bytes from connection {}'.format(self.__interface._default_listener_port(), len(msg), connection))
 
     def send(self, msg, connection):
-        # print ('### Handler.send')
+        logger.debug('Handler.send')
         self.__interface.send(msg, connection)
 
     def close(self):
         self.__sctn.close()
-        print ('Handrel close')
+        logger.info('Handrel close')
 
 
 def rm_peers():
@@ -58,7 +59,7 @@ def get_fingerprint(self):
 
 
 if __name__ == "__main__":
-    print ('start test')
+    logger.info('start test')
 
     # run SS0
     peers = []
@@ -83,7 +84,7 @@ if __name__ == "__main__":
 
     while not peers[last_peer].is_ready():
         time.sleep(0.1)
-    print ('the last peer has connect with swarm')
+    logger.info('the last peer has connect with swarm')
 
     # print ('test: lost connection with peer', peers[1]._default_listener_port())
     # peers[1].stop()
@@ -98,4 +99,4 @@ if __name__ == "__main__":
         h.stop()
 
     # rm_peers()
-    print ('end test')
+    logger.info('end test')

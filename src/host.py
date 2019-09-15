@@ -79,7 +79,7 @@ class UDPHost:
                 self.__update_listener_data(port, {'socket': sock})
             except socket.error as e:
                 if e.errno == errno.EADDRINUSE:
-                    print('Error: port {} is already in use'.format(self.port))
+                    logger.warning('Error: port {} is already in use'.format(self.port))
                     port += 1
                     if port > self.max_port:
                         port = self.min_user_port
@@ -91,7 +91,7 @@ class UDPHost:
 
     def __start_listener_tread(self, listener_port):
         listener_tread = threading.Thread(
-            name=self.port,
+            name='listener {}'.format(self.port),
             target=self.__listener,
             args=(listener_port,))
         self.__update_listener_data(
@@ -120,7 +120,10 @@ class UDPHost:
         return msg == self.ping_msg
 
     def __thread_check_connections(self):
-        self.__check_connections_thread = threading.Thread(target=self.__check_connections)
+        self.__check_connections_thread = threading.Thread(
+            name='check connections {}'.format(self._default_listener_port()),
+            target=self.__check_connections
+        )
         self.__check_connections_thread.start()
 
     def __check_connections(self):
@@ -161,7 +164,7 @@ class UDPHost:
         self.__handler.close()
         self.__shutdown_check_connections()
         self.__shutdown_listeners()
-        print ('host stop')
+        logger.info('host stop')
 
     def __del__(self):
         self.stop()
@@ -183,11 +186,10 @@ class UDPHost:
     def send(self, msg, connection):
         # FIXME if MTU didn't setup use min_UDP_MTU
         if len(msg) > settings.max_UDP_MTU:
-            print ('peer {} can\'t send the message with length {}'.format(self._default_listener_port(), len(msg)))
+            logger.warning('peer {} can\'t send the message with length {}'.format(self._default_listener_port(), len(msg)))
 
         incoming_port = connection[self.incoming_port]
         peer = (connection[self.peer_ip], connection[self.peer_port])
-        # print ('peer {} send a message to {}'.format(self, connection))
         self.__listeners[incoming_port]['socket'].sendto(msg, peer)
         self.__update_time_last_request(connection)
 
@@ -216,7 +218,7 @@ class UDPHost:
             last_request_time = self.__connections[connection].get('last_request')
 
             if last_request_time is None or time.time() - last_request_time > settings.ping_time:
-                print ('### {} ping {}'.format(self._default_listener_port(), connection))
+                logger.debug('{} ping {}'.format(self._default_listener_port(), connection))
                 self.__ping(connection)
 
     def __check_connection_is_alive(self, connection):
@@ -229,7 +231,7 @@ class UDPHost:
     def remove_connection(self, connection):
         last_request_time = time.time() - self.__connections[connection].get('last_request', time.time() - 100)
         last_response_time = time.time() - self.__connections[connection].get('last_response', time.time() - 100)
-        print ('peer {} remove connection {} last_request_time {} last_response_time {}'.format(
+        logger.info('peer {} remove connection {} last_request_time {} last_response_time {}'.format(
             self._default_listener_port(),
             connection,
             last_request_time, last_response_time))
