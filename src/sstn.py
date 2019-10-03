@@ -243,7 +243,10 @@ class SignalServerHandler(SignalHandler):
         msg = self._sign_msg(msg) + msg
         for fingerprint in self.__queue:
             connection = self._get_peer_connections(fingerprint)[old]
-            logger.info('signal server {} send swarm (size {} peers) to peer {}'.format(self._interface._default_listener_port(), len(self.__queue), connection))
+            logger.info('signal server {} send swarm (size {} peers) to peer {}'.format(
+                self._interface._default_listener_port(),
+                len(self.__queue),
+                connection))
             self._interface.send(msg, connection)
 
     def __add_close_connection_flag(self, msg):
@@ -510,9 +513,8 @@ class SignalClientHandler(SignalHandler):
         # TODO probably better approach will be to send request by 10 attempts
         for hole in range(settings.holes):
             src_port = self._interface.rize_listener()
-            for dst_port in range(peer['port']+1, peer['port']+1+settings.holes):
+            for dst_port in range(peer['port'] + 1, peer['port'] + 1 + settings.holes):
                 print ('pinching', peer, dst_port, src_port)
-
 
     def __check_connection_is_done(self, peer):
         fingerprint = peer['fingerprint']
@@ -526,7 +528,6 @@ class SignalClientHandler(SignalHandler):
             del self.__connection_threads[fingerprint]
 
     def __direct_connect(self, peer):
-        fingerprint = peer['fingerprint']
         for attempt in range(settings.attempts_connect_to_peer):
             logger.info('attempt {} connect {} to {} directly'.format(
                 attempt,

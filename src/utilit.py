@@ -54,6 +54,8 @@ def import_peers():
                 unpack_peers(f.read())
             except json.decoder.JSONDecodeError:
                 settings.logger.error('cannot parse peers file')
+    else:
+        settings.peers = {}
 
 
 def add_peer(peer):
