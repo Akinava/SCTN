@@ -99,10 +99,10 @@ class UDPHost:
             name='listener {}'.format(self.port),
             target=self.__listener,
             args=(listener_port,))
-        listener_tread.start()
         self.__update_listener_data(
             listener_port,
             {'thread': listener_tread, 'alive': True})
+        listener_tread.start()
 
     def __update_listener_data(self, port, data):
         if port not in self.__listeners:

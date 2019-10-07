@@ -66,6 +66,7 @@ if __name__ == "__main__":
     last_peer = -1
 
     '''
+    # run SSTN
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
     signal_server_0.get_fingerprint = get_fingerprint
     peers.append(signal_server_0)
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     logger.info('the last peer has connect with swarm')
 
     # print ('test: lost connection with peer', peers[1]._default_listener_port())
-    # peers[1].stop()
+    # peers[last_peer].stop()
 
     try:
         while True:

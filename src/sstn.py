@@ -297,7 +297,7 @@ class SignalClientHandler(SignalHandler):
 
     def __swarm_maker(self):
         self._wait_interface_socket()
-        while True:
+        while self.__swarm_maker_thread.is_alive():
             if len(self._interface.get_connections()) < settings.min_peer_connections:
                 # TODO if peer in swarm request peer connect
                 # TODO if swarm peers in settings, connect to them
@@ -330,10 +330,13 @@ class SignalClientHandler(SignalHandler):
     def __call_peers_by_sstn(self):
         if self.__peer_has_connection_with_sstn():
             return
-        logger.info('signal client {} request swarm from sstn'.format(self._interface._default_listener_port()))
+        logger.info('signal client {} request swarm from sstn'.format(
+            self._interface._default_listener_port()))
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
         if sstn_peer is None:
-            logger.warning('signal client {} no sstn in peers file'.format(self._interface._default_listener_port()))
+            logger.warning('signal client {} no sstn in peers file. Stop the peer'.format(
+                self._interface._default_listener_port()))
+            self._interface.stop()
             return
         self.__send_hello(sstn_peer)
 
