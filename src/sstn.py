@@ -360,35 +360,35 @@ class SignalClientHandler(SignalHandler):
         self.__external_handle_request(msg, connection)
 
     def __define_request_type(self, msg, connection):
-        if self.__msg_is_swarm_peer_list(msg, connection):
+        if self.__is_msg_swarm_peers_list(msg, connection):
             return self.__handle_swarm_peer_list
 
-        if self.__msg_is_sstn_peer_list(msg, connection):
+        if self.__is_msg_sstn_peer_list(msg, connection):
             return self.__handle_sstn_peer_list
 
-        if self.__msg_is_hello(msg):
+        if self.__is_msg_hello(msg):
             return self.__handle_hello
 
         return None
 
-    def __msg_is_hello(self, msg):
+    def __is_msg_hello(self, msg):
         return len(msg) == self.fingerprint_length
 
-    def __msg_is_swarm_peer_list(self, msg, connection):
-        if not self.__msg_is_peer_list(msg):
+    def __is_msg_swarm_peers_list(self, msg, connection):
+        if not self.__is_msg_peer_list(msg):
             return False
         fingerprint = self.__get_fingerprint_from_msg(msg)
         peer_is_signal = self._peers[fingerprint].get('signal', False)
         return peer_is_signal
 
-    def __msg_is_sstn_peer_list(self, msg, connection):
-        if not self.__msg_is_peer_list(msg):
+    def __is_msg_sstn_peer_list(self, msg, connection):
+        if not self.__is_msg_peer_list(msg):
             return False
         fingerprint = self.__get_fingerprint_from_msg(msg)
         peer_is_signal = self._peers[fingerprint].get('signal', False)
         return peer_is_signal is False
 
-    def __msg_is_peer_list(self, msg):
+    def __is_msg_peer_list(self, msg):
         if self.__msg_has_peer_list_length(msg) and \
            self.__get_fingerprint_from_msg(msg) in self._peers:
             return True
