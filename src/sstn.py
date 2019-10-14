@@ -516,8 +516,10 @@ class SignalClientHandler(SignalHandler):
         # TODO probably better approach will be to send request by 10 attempts
         for hole in range(settings.holes):
             src_port = self._interface.rize_listener()
-            for dst_port in range(peer['port'] + 1, peer['port'] + 1 + settings.holes):
-                print ('pinching', peer, dst_port, src_port)
+            dst_port_min = peer['port'] + 1
+            dst_port_max = peer['port'] + 1 + settings.holes
+            for dst_port in range(dst_port_min, dst_port_max):
+                print ('pinching to peer {} input port {} to output port {}'.format(peer, src_port, dst_port))
 
     def __check_connection_is_done(self, peer):
         fingerprint = peer['fingerprint']
