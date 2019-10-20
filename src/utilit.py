@@ -23,6 +23,11 @@ def setup_logger():
     settings.logger.addHandler(handler)
 
 
+def say_in_place(x, y, text):
+    sys.stdout.write("\x1b7\x1b[{};{}f{}\x1b8".format(x, y, text))
+    sys.stdout.flush()
+
+
 def pack_peers():
     peers_for_file = {}
     for fingerprint in settings.peers:

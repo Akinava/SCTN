@@ -117,7 +117,7 @@ class UDPHost:
             connection = peer + (listener_port,)
             self.__update_time_last_response(connection)
             if self.__msg_is_ping(msg):
-                # logger.info('peer {} received ping from {}'.format(self._default_listener_port(), connection))
+                logger.info('peer {} received ping from {}'.format(self._default_listener_port(), connection))
                 continue
             self.__handler.handle_request(msg, connection)
         self.__shutdown_listener(listener_port)

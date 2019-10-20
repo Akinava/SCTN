@@ -405,10 +405,10 @@ class SignalClientHandler(SignalHandler):
 
     def __handle_hello(self, fingerprint, connection):
         logger.info('signal client {} received hello from {}'.format(self._interface._default_listener_port(), connection))
-        self.__exit_from_connection_thread(fingerprint)
         if self.__check_hello_from_itself(fingerprint):
             self._interface.remove_connection(connection)
             return True
+        self.__exit_from_connection_thread(fingerprint)
         msg = self.__make_sstn_list_msg()
         logger.info('signal client {} send sstn list to {}'.format(self._interface._default_listener_port(), connection))
         self._interface.send(msg, connection)
@@ -514,12 +514,17 @@ class SignalClientHandler(SignalHandler):
 
     def __hole_pinching(self, peer):
         # TODO probably better approach will be to send request by 10 attempts
-        for hole in range(settings.holes):
+        x = 1 if self.get_fingerprint()[0] < peer['fingerprint'][0] else 2
+        from utilit import say_in_place
+
+        for _ in range(settings.holes):
             src_port = self._interface.rize_listener()
             dst_port_min = peer['port'] + 1
             dst_port_max = peer['port'] + 1 + settings.holes
             for dst_port in range(dst_port_min, dst_port_max):
-                print ('pinching to peer {} input port {} to output port {}'.format(peer, src_port, dst_port))
+
+                say_in_place(x, 130, ' host {:5} src {:5} dst {:5} '.format(peer['port'], src_port, dst_port))
+                time.sleep(0.01)
 
     def __check_connection_is_done(self, peer):
         fingerprint = peer['fingerprint']
