@@ -69,13 +69,19 @@ class UDPHost:
     def __make_socket(self):
         return socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
+    def __increment_port(self, port):
+        port += 1
+        if port > self.max_port:
+            port = self.min_user_port
+        return port
+
+
     def __bind_socket(self, sock):
         socket_is_bound = False
         port = self.port
         while socket_is_bound is False:
-            if port in self.__listeners:
-                port += 1
-                continue
+            while port in self.__listeners:
+                port = self.__increment_port(port)
 
             try:
                 sock.bind((self.host, port))
@@ -83,10 +89,8 @@ class UDPHost:
                 self.__update_listener_data(port, {'socket': sock})
             except socket.error as e:
                 if e.errno == errno.EADDRINUSE:
-                    logger.warning('Error: port {} is already in use'.format(self.port))
-                    port += 1
-                    if port > self.max_port:
-                        port = self.min_user_port
+                    #logger.warning('Error: port {} is already in use'.format(port))
+                    port = self.__increment_port(port)
         return port
 
     def rize_listener(self):
@@ -110,7 +114,7 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
-        logger.info('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
+        #logger.info('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)

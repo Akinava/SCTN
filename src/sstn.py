@@ -341,13 +341,27 @@ class SignalClientHandler(SignalHandler):
         self.__send_hello(sstn_peer)
 
     def __send_hello(self, peer, listener_port=None):
+        '''
+        peer = {
+            'fingerprint': b'peer_binary_fingerprint_hash',
+            'ip': '192.168.0.25',
+            'port': 10002
+        }
+        listener_port = 10003
+        '''
         fingerprint = peer['fingerprint']
         if listener_port is None:
             connection = self._interface.set_peer_connection(peer)
             listener_port = self._interface._default_listener_port()
+        else:
+            connection = self.__create_connection_use_peer_and_listener_port(peer, listener_port)
+
         self._save_peer(fingerprint, connection, peer.get('signal', False))
-        logger.info('signal client {} send hello to {}'.format(listener_port, connection))
+        #logger.info('signal client {} send hello to {}'.format(listener_port, connection))
         self._interface.send(self.get_fingerprint(), connection)
+
+    def __create_connection_use_peer_and_listener_port(self, peer, listener_port):
+        return (peer['ip'], peer['port'], listener_port)
 
     def handle_request(self, msg, connection):
         self._clean_peers_connections()
@@ -516,15 +530,23 @@ class SignalClientHandler(SignalHandler):
         # TODO probably better approach will be to send request by 10 attempts
         x = 1 if self.get_fingerprint()[0] < peer['fingerprint'][0] else 2
         from utilit import say_in_place
-
+        dst_port_min, dst_port_max = self.__range_dt_ports(peer)
         for _ in range(settings.holes):
             src_port = self._interface.rize_listener()
-            dst_port_min = peer['port'] + 1
-            dst_port_max = peer['port'] + 1 + settings.holes
+
             for dst_port in range(dst_port_min, dst_port_max):
+                peer = self.__set_dst_port(peer, dst_port)
+                self.__send_hello(peer, src_port)
 
                 say_in_place(x, 130, ' host {:5} src {:5} dst {:5} '.format(peer['port'], src_port, dst_port))
                 time.sleep(0.01)
+
+    def __set_dst_port(self, dst_peer, dst_port):
+        dst_peer['port'] = dst_port
+        return dst_peer
+
+    def __range_dt_ports(self, dst_peer):
+        return dst_peer['port'] + 1, dst_peer['port'] + 1 + settings.holes
 
     def __check_connection_is_done(self, peer):
         fingerprint = peer['fingerprint']
