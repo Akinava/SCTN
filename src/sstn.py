@@ -527,10 +527,15 @@ class SignalClientHandler(SignalHandler):
         self.__hole_pinching(peer)
 
     def __hole_pinching(self, peer):
-        # TODO probably better approach will be to send request by 10 attempts
-        x = 1 if self.get_fingerprint()[0] < peer['fingerprint'][0] else 2
+        self.__choose_winner_of_first_request(peer)
+
         from utilit import say_in_place
+
         dst_port_min, dst_port_max = self.__range_dt_ports(peer)
+
+        print ("############ start")
+        s = time.time()
+
         for _ in range(settings.holes):
             src_port = self._interface.rize_listener()
 
@@ -538,8 +543,21 @@ class SignalClientHandler(SignalHandler):
                 peer = self.__set_dst_port(peer, dst_port)
                 self.__send_hello(peer, src_port)
 
-                say_in_place(x, 130, ' host {:5} src {:5} dst {:5} '.format(peer['port'], src_port, dst_port))
-                time.sleep(0.01)
+                say_in_place(1, 130, ' host {:5} src {:5} dst {:5} '.format(peer['port'], src_port, dst_port))
+                #time.sleep(0.01)
+
+        print ("######### end")
+        print ("#### time", time.time() - s)
+
+    def __choose_winner_of_first_request(self, peer):
+        for x in range(len(self.get_fingerprint())):
+            if self.get_fingerprint()[x] == peer['fingerprint'][x]:
+                continue
+            if self.get_fingerprint()[x] < peer['fingerprint'][x]:
+                time.sleep(settings.ping_time)
+            else:
+                return
+            logger.error('no a winner of the first request')
 
     def __set_dst_port(self, dst_peer, dst_port):
         dst_peer['port'] = dst_port
