@@ -1,13 +1,13 @@
 {
   "shadow_file": "src/shadow",
   "peers_file": "src/peers.json",
-  "port": 10002,
+  "default_port": 10002,
   "min_peer_connections": 3,
   "buffer_size": 1024,
   "max_UDP_MTU": 1432,
   "min_UDP_MTU": 508,
-  "peer_timeout": 13,
-  "ping_time": 5,
+  "peer_live_points": 5,
+  "peer_ping_time": 5,
   "attempts_connect_to_peer": 3,
   "holes": 256
 }

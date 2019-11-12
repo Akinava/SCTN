@@ -80,7 +80,7 @@ if __name__ == "__main__":
     '''
 
     # run NP
-    for port in range(10003, 10005):
+    for port in range(10003, 10004):
         peers.append(host.UDPHost(handler=Handler, host='', port=port))
 
     while not peers[last_peer].is_ready():

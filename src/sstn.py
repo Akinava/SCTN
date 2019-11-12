@@ -72,24 +72,33 @@ class SignalHandler:
     def _get_rundom_sstn_peer_from_settings(self):
         if len(settings.peers) == 0:
             return None
-        sstn_peer_list = self._get_sstn_list_from_settings()
+        sstn_peer_list = self._get_list_from_settings(signal_marker=True)
         if len(sstn_peer_list) == 0:
             return None
         random.shuffle(sstn_peer_list)
         return sstn_peer_list[0]
 
-    def _get_sstn_list_from_settings(self):
+    def _get_rundom_swarm_peer_from_settings(self):
+        if len(settings.peers) == 0:
+            return None
+        swarm_peer_list = self._get_list_from_settings(signal_marker=False)
+        if len(swarm_peer_list) == 0:
+            return None
+        random.shuffle(swarm_peer_list)
+        return swarm_peer_list[0]
+
+    def _get_list_from_settings(self, signal_marker=False):
         if len(settings.peers) == 0:
             return []
-        sstn_peer_list = []
+        peer_list = []
         for fingerprint in settings.peers:
             peer_data = settings.peers[fingerprint].copy()
             if self._interface.peer_itself(peer_data) or \
-               not peer_data.get('signal') is True:
+               not peer_data.get('signal', False) is signal_marker:
                 continue
             peer_data['fingerprint'] = fingerprint
-            sstn_peer_list.append(peer_data)
-        return sstn_peer_list
+            peer_list.append(peer_data)
+        return peer_list
 
     def _save_peer(self, fingerprint, connection, signal=False):
         # self._interface.update_time_last_responce(connection)
@@ -299,10 +308,20 @@ class SignalClientHandler(SignalHandler):
         self._wait_interface_socket()
         while self.__swarm_maker_thread.is_alive():
             if len(self._interface.get_connections()) < settings.min_peer_connections:
-                # TODO if peer in swarm request peer connect
-                # TODO if swarm peers in settings, connect to them
-                self.__call_peers_by_sstn()
-            time.sleep(settings.ping_time)
+                self.__go_through_connection_functions()
+                time.sleep(settings.ping_time)
+
+    def __go_through_connection_functions(self):
+        for connect_function in [
+            self.__connect_to_swarm_peer_from_settings,
+            self.__call_peers_by_sstn]:
+
+            # TODO if peer in swarm request peer connect
+            #self.__connect_to_swarm_peer_from_settings()
+            #self.__call_peers_by_sstn()
+
+            if connect_function() is True:
+                return
 
     def __reload_external_handler_methods(self):
         self.__external_handle_request = self.__handler.handle_request
@@ -327,9 +346,18 @@ class SignalClientHandler(SignalHandler):
                 return True
         return False
 
+    def __connect_to_swarm_peer_from_settings(self):
+        logger.info('signal client {} connect to swarm peer from settings'.format(
+            self._interface._default_listener_port()))
+        swarm_peer = self._get_rundom_swarm_peer_from_settings()
+        if swarm_peer is None:
+            return False
+        self.__send_hello(swarm_peer)
+        return True
+
     def __call_peers_by_sstn(self):
         if self.__peer_has_connection_with_sstn():
-            return
+            return True
         logger.info('signal client {} request swarm from sstn'.format(
             self._interface._default_listener_port()))
         sstn_peer = self._get_rundom_sstn_peer_from_settings()
@@ -337,8 +365,9 @@ class SignalClientHandler(SignalHandler):
             logger.warning('signal client {} no sstn in peers file. Stop the peer'.format(
                 self._interface._default_listener_port()))
             self._interface.stop()
-            return
+            return False
         self.__send_hello(sstn_peer)
+        return True
 
     def __send_hello(self, peer, listener_port=None):
         '''
