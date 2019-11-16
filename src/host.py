@@ -29,11 +29,14 @@ class UDPHost:
 
     ping_msg      = b''
 
-    def __init__(self, handler, host, port=settings.port):
+    def __init__(self, handler, host, port=settings.default_port):
         self.port = port
         self.host = host
-        self.__connections = {}  # {(ip, port, incoming_port): {'MTU': MTU, 'last_response': timestamp}}
-        self.__listeners = {}    # {port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
+        self.__connections = {}  # {(dst_ip, dst_port, src_port): {
+        #                                   'MTU': MTU, 'last_response': timestamp,
+        #                                   'last_request': timestamp,
+        #                                   'live_points': live_points}}
+        self.__listeners = {}    # {src_port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
         self.__handler = handler(self)
         self.rize_listener()
         self.__thread_check_connections()
@@ -114,7 +117,7 @@ class UDPHost:
         self.__listeners[port].update(data)
 
     def __listener(self, listener_port):
-        #logger.info('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
+        logger.info('peer {} run listener on port {}'.format(self._default_listener_port(), listener_port))
         while self.__listeners[listener_port]['alive']:
             sock = self.__listeners[listener_port]['socket']
             msg, peer = sock.recvfrom(settings.buffer_size)
@@ -138,10 +141,10 @@ class UDPHost:
 
     def __check_connections(self):
         while True:
+            self.__ping_connections()
             self.__check_alive_connections()
             self.__check_alive_listeners()
-            self.__ping_connections()
-            time.sleep(settings.ping_time)
+            time.sleep(1)
 
     def get_ip(self):
         if not hasattr(self, 'ip'):
@@ -225,11 +228,22 @@ class UDPHost:
 
     def __ping_connections(self):
         for connection in self.__connections:
-            last_request_time = self.__connections[connection].get('last_request')
+            last_request_time = self.__get_peer_last_request_time(connection)
 
-            if last_request_time is None or time.time() - last_request_time > settings.ping_time:
+            if self.__check_last_request_is_old(last_request_time):
                 logger.debug('{} ping {}'.format(self._default_listener_port(), connection))
                 self.__ping(connection)
+
+    def __check_last_request_is_old(self, last_request_time):
+        if last_request_time in None:
+            return True
+        if time.time() - last_request_time > settings.peer_ping_time:
+            return True
+        return False
+
+    def __get_peer_last_request_time(self, connection):
+        last_request_time = self.__connections[connection].get('last_request')
+
 
     def __check_connection_is_alive(self, connection):
         last_response_time = self.__connections[connection].get('last_response')

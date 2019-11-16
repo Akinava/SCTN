@@ -55,7 +55,7 @@ def stop_thread(server_thread):
 
 
 def get_fingerprint(self):
-    return self.__handler.get_fingerprint()
+    return self._UDPHost__handler.get_fingerprint()
 
 
 if __name__ == "__main__":
@@ -64,11 +64,11 @@ if __name__ == "__main__":
     # run SS0
     peers = []
     last_peer = -1
+    host.UDPHost.get_fingerprint = get_fingerprint
 
-    '''
     # run SSTN
     signal_server_0 = host.UDPHost(handler=sstn.SignalServerHandler, host='', port=10002)
-    signal_server_0.get_fingerprint = get_fingerprint
+
     peers.append(signal_server_0)
     # save fingerprint to peers
     if not os.path.isfile(settings.peers_file):
@@ -77,7 +77,6 @@ if __name__ == "__main__":
              'port': 10002,
              'fingerprint': signal_server_0.get_fingerprint(),
              'signal': True})
-    '''
 
     # run NP
     for port in range(10003, 10004):
