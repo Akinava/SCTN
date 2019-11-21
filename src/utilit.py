@@ -14,6 +14,9 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 def setup_logger():
     settings.logger = logging.getLogger(__name__)
     settings.logger.setLevel(settings.logging_level)
@@ -46,15 +49,16 @@ def unpack_peers(data):
 
 
 def import_config():
-    with open(settings.config_file, 'r') as cfg_file:
+    with open(os.path.join(file_dir, settings.config_file), 'r') as cfg_file:
         config = json.loads(cfg_file.read())
         for k, v in config.items():
             setattr(settings, k, v)
 
 
 def import_peers():
-    if os.path.isfile(settings.peers_file):
-        with open(settings.peers_file, 'r') as f:
+    peers_file = os.path.join(file_dir, settings.peers_file)
+    if os.path.isfile(peers_file):
+        with open(peers_file, 'r') as f:
             try:
                 unpack_peers(f.read())
             except json.decoder.JSONDecodeError:
@@ -74,7 +78,8 @@ def add_peer(peer):
 
 
 def save_peers():
-    with open(settings.peers_file, 'w') as f:
+    peers_file = os.path.join(file_dir, settings.peers_file)
+    with open(peers_file, 'w') as f:
         f.write(json.dumps(pack_peers(), indent=2))
 
 

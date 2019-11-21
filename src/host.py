@@ -5,6 +5,7 @@ import threading
 import time
 import settings
 from settings import logger
+import connections
 
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
@@ -19,23 +20,18 @@ __version__ = [0, 0]
 
 
 class UDPHost:
-    peer_ip       = 0
-    peer_port     = 1
-    incoming_port = 2
-
-    min_user_port = 0x400
-    max_user_port = 0xbfff
-    max_port      = 0xffff
-
+    min_user_port = 0x400  #  1024
+    max_user_port = 0xbfff # 49151
+    max_port      = 0xffff # 65535
     ping_msg      = b''
 
     def __init__(self, handler, host, port=settings.default_port):
-        self.port = port
+        self.default_port = port
         self.host = host
-        self.__connections = {}  # {(dst_ip, dst_port, src_port): {
-        #                                   'MTU': MTU, 'last_response': timestamp,
-        #                                   'last_request': timestamp,
-        #                                   'live_points': live_points}}
+        # self.__connections = {}  # {(dst_ip, dst_port, src_port): {
+        # #                                   'MTU': MTU, 'last_response': timestamp,
+        # #                                   'last_request': timestamp,
+        # #                                   'live_points': live_points}}
         self.__listeners = {}    # {src_port: {'thread': listener_tread, 'alive': True, 'socket': socket}}
         self.__handler = handler(self)
         self.rize_listener()
@@ -266,3 +262,7 @@ class UDPHost:
 
     def __ping(self, connection):
         self.send(self.ping_msg, connection)
+
+
+class Listener:
+    pass

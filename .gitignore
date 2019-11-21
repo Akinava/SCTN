@@ -1,4 +1,6 @@
 *.pyc
+.idea
+venv
 src/peers.json
 src/pycrypto.py
 src/shadow

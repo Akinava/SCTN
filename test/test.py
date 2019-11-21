@@ -15,6 +15,7 @@ __version__ = [0, 0]
 test_dir = os.path.dirname(os.path.abspath(__file__))
 src_dir = os.path.join(test_dir, '../src')
 sys.path.append(src_dir)
+
 import host
 import sstn
 import settings

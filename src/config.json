@@ -1,6 +1,6 @@
 {
-  "shadow_file": "src/shadow",
-  "peers_file": "src/peers.json",
+  "shadow_file": "shadow",
+  "peers_file": "peers.json",
   "default_port": 10002,
   "min_peer_connections": 3,
   "buffer_size": 1024,
