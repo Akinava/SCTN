@@ -10,6 +10,7 @@ import json
 import host
 import pycrypto
 import settings
+import connections
 from settings import logger
 
 
@@ -169,7 +170,7 @@ class SignalServerHandler(SignalHandler):
 
     def __connect_to_swarm(self):
         self._wait_interface_socket()
-        sstn_peer = self._get_rundom_sstn_peer_from_settings()
+        sstn_peer = connections.get_rundom_sstn_peer()
         if sstn_peer is None:
             logger.warning('signal server {} no sstn to request a swarm'.format(self._interface._default_listener_port()))
             return

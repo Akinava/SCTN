@@ -12,9 +12,8 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.join(test_dir, '../src')
-sys.path.append(src_dir)
+sys.path.append(os.path.join(os.path.abspath(os.pardir), 'src'))
+
 
 import host
 import sstn
@@ -79,6 +78,7 @@ if __name__ == "__main__":
              'fingerprint': signal_server_0.get_fingerprint(),
              'signal': True})
 
+    """
     # run NP
     for port in range(10003, 10004):
         peers.append(host.UDPHost(handler=Handler, host='', port=port))
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # print ('test: lost connection with peer', peers[1]._default_listener_port())
     # peers[last_peer].stop()
-
+    """
     try:
         while True:
             time.sleep(5)

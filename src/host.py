@@ -26,7 +26,7 @@ class UDPHost:
     ping_msg      = b''
 
     def __init__(self, handler, host, port=settings.default_port):
-        self.default_port = port
+        self.__default_port = port
         self.host = host
         # self.__connections = {}  # {(dst_ip, dst_port, src_port): {
         # #                                   'MTU': MTU, 'last_response': timestamp,
@@ -77,7 +77,7 @@ class UDPHost:
 
     def __bind_socket(self, sock):
         socket_is_bound = False
-        port = self.port
+        port = self.__default_port
         while socket_is_bound is False:
             while port in self.__listeners:
                 port = self.__increment_port(port)
