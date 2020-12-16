@@ -1,4 +1,7 @@
+import time
 
 
 if __name__ == '__main__':
-    print('client')
+    while True:
+        print('hello from client')
+        time.sleep(2)

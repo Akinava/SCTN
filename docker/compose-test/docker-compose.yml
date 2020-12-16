@@ -10,3 +10,19 @@ services:
     ports:
       - 2003:2003
     tty: true
+
+  sstn-client1:
+    container_name: sstn_client1_test
+    build:
+      context: ../../
+      dockerfile: docker/images/client/Dockerfile
+    image: sstn_client:v0
+    tty: true
+
+  sstn-client2:
+    container_name: sstn_client2_test
+    build:
+      context: ../../
+      dockerfile: docker/images/client/Dockerfile
+    image: sstn_client:v0
+    tty: true
