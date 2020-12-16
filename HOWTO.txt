@@ -1,2 +1,17 @@
-# run rebuild and run container
+# rebuild and run project in local containers
 docker-compose -f ./docker/compose-test/docker-compose.yml up --build
+
+# start container interactive
+docker start -i fbb73216544e
+
+# build image
+docker build -f docker/images/server/Dockerfile -t img_server:v0 .
+
+# build and run container
+docker run -it swarm-server-tn:v0
+
+# start server local
+python3 ./src/server.py
+
+# start client local
+python3 ./src/client.py

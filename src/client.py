@@ -9,10 +9,10 @@ __version__ = [0, 0]
 from settings import logger
 
 
-def server_run():
+def client_run():
     logger.info('client start')
     logger.info('client shutdown')
 
 
 if __name__ == '__main__':
-    server_run()
+    client_run()
