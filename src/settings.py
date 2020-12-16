@@ -9,8 +9,6 @@ __copyright__ = "Copyright © 2019"
 __license__ = "MIT License"
 __version__ = [0, 0]
 
-# FIXME
-
 config_file = 'config.json'
 logging_level = logging.INFO
 logging_format = '%(asctime)s : %(levelname)s : %(module)s : %(threadName)s : %(funcName)s : %(message)s'

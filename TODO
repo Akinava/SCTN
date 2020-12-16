@@ -7,8 +7,8 @@ recive data/send data in list
 check if message is dublicate / handler
 check flag recived / if not try again several times if not / try to reconnect / if not remove host from live hosts list
 
-SSTN
+sstn
 Swarm Server Traversal for NAT - Server
 
-SP
-Swarm Point - Point
+sctn
+Swarm Server Traversal for NAT - Client
