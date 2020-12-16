@@ -21,6 +21,7 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 # Signal Server for Traversal NAT
 
+# FIXME
 
 # TODO handle shutdown thread
 

@@ -1,0 +1,2 @@
+# run rebuild and run container
+docker-compose -f ./docker/compose-test/docker-compose.yml up --build

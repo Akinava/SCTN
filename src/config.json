@@ -1,4 +1,5 @@
 {
+  "FIXME": true,
   "shadow_file": "shadow",
   "peers_file": "peers.json",
   "default_port": 10002,

@@ -5,4 +5,10 @@ app/daemon mode
 check connection and make attempt to reconnect
 recive data/send data in list
 check if message is dublicate / handler
-check flag recived / if not try again several times if not / try to reconnect / if not remove host from live hosts list 
+check flag recived / if not try again several times if not / try to reconnect / if not remove host from live hosts list
+
+SSTN
+Swarm Server Traversal for NAT - Server
+
+SP
+Swarm Point - Point

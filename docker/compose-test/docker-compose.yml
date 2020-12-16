@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  sstn-server:
+    container_name: sstn_server_test
+    build:
+      context: ../../
+      dockerfile: docker/images/server/Dockerfile
+    image: sstn_server:v0
+    ports:
+      - 2003:2003
+    tty: true
