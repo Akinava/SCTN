@@ -6,13 +6,7 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
-from settings import logger
+import pycrypto
 
-
-def client_run():
-    logger.info('client start')
-    logger.info('client shutdown')
-
-
-if __name__ == '__main__':
-    client_run()
+class Tools:
+    pass

@@ -7,10 +7,17 @@ __version__ = [0, 0]
 
 
 from settings import logger
+import settings
+import host
+import protocol
+import crypt_tools
 
 
 def server_run():
     logger.info('server start')
+    server_handler = protocol.Handler(protocol.sstn, crypt_tools=crypt_tools.Tools())
+    sstn = host.UDPHost(handler=server_handler, host='', port=settings.default_port)
+    sstn.listener_start()
     logger.info('server shutdown')
 
 

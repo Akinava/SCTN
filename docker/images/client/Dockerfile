@@ -1,7 +1,14 @@
 FROM python:3-alpine
-RUN /usr/local/bin/python -m pip install --upgrade pip
 WORKDIR /usr/src/app
+
+# copy app
 COPY src/ .
-COPY docker/images/server/requirements.txt .
-RUN pip install -qr requirements.txt
+COPY requirements.txt .
+
+# install lib
+RUN apk add g++
+RUN wget https://raw.githubusercontent.com/Akinava/PyCrypto/master/src/pycrypto.py
+RUN /usr/local/bin/python -m pip install --upgrade pip
+RUN pip install -r requirements.txt
+
 CMD ["python3", "./client.py"]
