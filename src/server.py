@@ -15,9 +15,9 @@ import crypt_tools
 
 def server_run():
     logger.info('server start')
-    server_handler = protocol.Handler(protocol.sstn, crypt_tools=crypt_tools.Tools())
-    sstn = host.UDPHost(handler=server_handler, host='', port=settings.default_port)
-    sstn.listener_start()
+    server_handler = protocol.Handler(protocol.server, crypt_tools=crypt_tools.Tools())
+    server = host.UDPHost(handler=server_handler, host='', port=settings.default_port)
+    server.listener_start()
     logger.info('server shutdown')
 
 

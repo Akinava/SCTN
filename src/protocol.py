@@ -6,12 +6,12 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
-sstn = {
+server = {
     'request': 'response',
     'hello': 'swarm_list',
 }
 
-point = {
+client = {
     'request': 'response',
     'swarm_list': None
 }
@@ -65,3 +65,4 @@ class Handler:
     def define_swarm_list(self, request):
         # TODO
         pass
+

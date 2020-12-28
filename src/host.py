@@ -16,17 +16,22 @@ class UDPHost:
         self.__host = host
         self.__port = port
 
-    def listener_create(self):
+    def create_listener(self):
         logger.info('host create listener on host "{}" and port {}'.format(self.__host, self.__port))
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.sock.bind((self.__host, self.__port))
 
     def listener_start(self):
-        self.listener_create()
-
+        self.create_listener()
+        logger.info('create_listener')
         while True:
             msg, peer = self.sock.recvfrom(settings.socket_buffer_size)
             response = self.__handle(msg, peer)
             if response is None:
                 continue
             self.sock.sendto(response, peer)
+
+    def run_swarm_watcher(self):
+        logger.info('run_swarm_watcher')
+        # TODO
+        pass

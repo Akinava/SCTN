@@ -7,12 +7,20 @@ __version__ = [0, 0]
 
 
 from settings import logger
+import settings
+import host
+import protocol
+import crypt_tools
 
 
-def client_run():
-    logger.info('client start')
-    logger.info('client shutdown')
+class Client:
+    def __init__(self, handler, host='', port=settings.default_port):
+        self.__user_handler = handler
+        self.__host = host
+        self.__port = port
 
+    def run(self):
+        client_handler = protocol.Handler(protocol.client, crypt_tools=crypt_tools.Tools())
+        self.__client = host.UDPHost(handler=client_handler, host=self.__host, port=self.__port)
+        self.__client.run_swarm_watcher()
 
-if __name__ == '__main__':
-    client_run()

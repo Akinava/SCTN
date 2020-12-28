@@ -9,9 +9,3 @@ docker build -f docker/images/server/Dockerfile -t img_server:v0 .
 
 # build and run container
 docker run -it swarm-server-tn:v0
-
-# start server local
-python3 ./src/server.py
-
-# start client local
-python3 ./src/client.py
