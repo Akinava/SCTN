@@ -6,22 +6,21 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
-server = {
-    'request': 'response',
-    'hello': 'swarm_list',
-}
+class GeneralProtocol:
+    def connection_made(self, transport):
+        self.transport = transport
 
-client = {
-    'request': 'response',
-    'swarm_list': None
-}
+    def datagram_received(self, data, addr):
+        request = data.decode()
+        response = self.handle(request)
+        print('Received %r from %s' % (request, addr))
+        print('Send %r to %s' % (response, addr))
+        if response is None:
+            return
+        self.transport.sendto(response.encode(), addr)
 
-
-class Handler:
-    def __init__(self, protocol, crypt_tools):
-        self.__protocol = protocol
-        self.__crypt_tools = crypt_tools
-        # TODO get fingerprint
+    def connection_lost(self, addr):
+        pass
 
     def handle(self, request):
         request_name = self.define_request(request)
@@ -47,22 +46,18 @@ class Handler:
         return None
 
     def get_response_function(self, request_name):
-        response_name = self.__protocol[request_name]
+        response_name = self.protocol[request_name]
         response_function_name = 'do_{}'.format(response_name)
         if not hasattr(self, response_function_name):
             return
         return getattr(self, response_function_name)
 
-    def define_ping(self, request):
+    def define_swarm_ping(self, request):
         if request == '':
             return True
         return False
 
-    def define_hello(self, request):
-        # TODO
-        pass
-
-    def define_swarm_list(self, request):
+    def define_swarm_hello(self, request):
         # TODO
         pass
 

@@ -9,13 +9,12 @@ __version__ = [0, 0]
 import pycrypto
 
 class Tools:
-    def __init__(self):
-        self.__get_fingerprint()
-
-    def __get_fingerprint(self):
-        if self.__get_fingerprint_from_file():
-            return
-        self.__generate_new_fingerprin()
+    def get_fingerprint(self):
+        if self.get_fingerprint_from_file():
+            return self.fingerprint
+        self.generate_new_fingerprin()
+        self.save_fingerprint()
+        return self.fingerprint
 
     def __get_fingerprint_from_file(self):
         # TODO

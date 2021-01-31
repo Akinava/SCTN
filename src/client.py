@@ -13,14 +13,28 @@ import protocol
 import crypt_tools
 
 
-class Client:
-    def __init__(self, handler, host='', port=settings.default_port):
-        self.__user_handler = handler
-        self.__host = host
-        self.__port = port
+class ClientHandler(protocol.GeneralProtocol):
+    protocol = {
+        'request': 'response',
+        'swarm_ping': None,
+        'swarm_hello': 'swarm_servers',
+        'first_swarm_peer': None,
+    }
 
-    def run(self):
-        client_handler = protocol.Handler(protocol.client, crypt_tools=crypt_tools.Tools())
-        self.__client = host.UDPHost(handler=client_handler, host=self.__host, port=self.__port)
-        self.__client.run_swarm_watcher()
+    def extend(self, handler):
+        # add inherit functions from handler to self
+        pass
 
+    def define_first_swarm_peer(self, request):
+        # connect to peer
+        # TODO
+        pass
+
+
+class Client(host.UDPHost):
+    async def run(self):
+        self.crypto = crypt_tools.Tools()
+        pass
+        # get fingerprint
+        # get swarm peers / connect /
+        # get swarm server / connect / get swarm peer / connect

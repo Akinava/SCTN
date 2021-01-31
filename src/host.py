@@ -5,33 +5,34 @@ __copyright__ = "Copyright © 2019"
 __license__ = "MIT License"
 __version__ = [0, 0]
 
+
 from settings import logger
-import settings
-import socket
+import asyncio
 
 
 class UDPHost:
-    def __init__(self, handler, host='', port=settings.default_port):
-        self.__handler = handler
-        self.__host = host
-        self.__port = port
+    def __init__(self, handler):
+        logger.info('host init')
+        self.handler = handler
+        self.loop = asyncio.get_running_loop()
+        self.listeners = {}
+        self.connections = {}
 
-    def create_listener(self):
-        logger.info('host create listener on host "{}" and port {}'.format(self.__host, self.__port))
-        self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.sock.bind((self.__host, self.__port))
+    def connect(self, host, port):
+        logger.info('host connect to {} {}'.format(host, port))
 
-    def listener_start(self):
-        self.create_listener()
-        logger.info('create_listener')
-        while True:
-            msg, peer = self.sock.recvfrom(settings.socket_buffer_size)
-            response = self.__handle(msg, peer)
-            if response is None:
-                continue
-            self.sock.sendto(response, peer)
+    async def create_listener(self, port):
+        logger.info('host create_listener on port {}'.format(port))
+        transport, protocol = await self.loop.create_datagram_endpoint(
+            lambda: self.handler(),
+            local_addr=('0.0.0.0', port))
+        self.listeners[port] = {
+            'transport': transport,
+            'protocol': protocol,
+        }
 
-    def run_swarm_watcher(self):
-        logger.info('run_swarm_watcher')
-        # TODO
-        pass
+    def shutdown_listener(self, port):
+        if not port in self.listeners:
+            return
+        self.listeners[port]['transport'].close()
+        del self.listeners[port]

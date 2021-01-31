@@ -11,15 +11,29 @@ import settings
 import host
 import protocol
 import crypt_tools
+import asyncio
 
 
-def server_run():
-    logger.info('server start')
-    server_handler = protocol.Handler(protocol.server, crypt_tools=crypt_tools.Tools())
-    server = host.UDPHost(handler=server_handler, host='', port=settings.default_port)
-    server.listener_start()
-    logger.info('server shutdown')
+class ServerHandler(protocol.GeneralProtocol):
+    protocol = {
+        'request': 'response',
+        'swarm_ping': None,
+        'swarm_hello': 'first_swarm_peer',
+    }
+
+    def do_first_swarm_peer(self, request):
+        # TODO
+        return ''
+
+
+class Server(host.UDPHost):
+    async def run(self):
+        self.create_listener(settings.default_port)
+        self.crypto = crypt_tools.Tools()
 
 
 if __name__ == '__main__':
-    server_run()
+    logger.info('server start')
+    server = Server(ServerHandler)
+    asyncio.run(server.run())
+    logger.info('server shutdown')
