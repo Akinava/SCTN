@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-import json
-import os
-import sys
-import logging
-import settings
-
-
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
 __copyright__ = "Copyright © 2019"
 __license__ = "MIT License"
 __version__ = [0, 0]
+
+
+import json
+import os
+import sys
+import logging
+import settings
 
 
 def setup_logger():

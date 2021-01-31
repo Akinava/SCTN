@@ -8,6 +8,7 @@ __version__ = [0, 0]
 
 import pycrypto
 
+
 class Tools:
     def get_fingerprint(self):
         if self.get_fingerprint_from_file():
