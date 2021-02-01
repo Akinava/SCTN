@@ -6,12 +6,12 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
-from settings import logger
+import asyncio
 import settings
+from settings import logger
 import host
 import protocol
 import crypt_tools
-import asyncio
 
 
 class ServerHandler(protocol.GeneralProtocol):
