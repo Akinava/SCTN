@@ -21,5 +21,6 @@ host_max_port      = 0xffff # 65535
 host_max_udp_mtu = 1432
 host_min_udp_mtu = 508
 socket_buffer_size = 1024
+time_check_host_is_alive = 0.1
 
 utilit.setup_settings()

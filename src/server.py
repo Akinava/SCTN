@@ -18,10 +18,10 @@ class ServerHandler(protocol.GeneralProtocol):
     protocol = {
         'request': 'response',
         'swarm_ping': None,
-        'swarm_hello': 'first_swarm_peer',
+        'swarm_hello': 'send_first_swarm_peer',
     }
 
-    def do_first_swarm_peer(self, request):
+    def do_send_first_swarm_peer(self, request):
         # TODO
         return ''
 
@@ -31,7 +31,6 @@ class Server(host.UDPHost):
         logger.info('Server run')
         await self.create_listener(settings.default_port)
         self.crypto = crypt_tools.Tools()
-
         await self.serve_forever()
 
 

@@ -23,6 +23,7 @@ class GeneralProtocol:
         pass
 
     def handle(self, request):
+        # TODO make a tread
         request_name = self.define_request(request)
         if request_name is None:
             return

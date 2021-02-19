@@ -7,6 +7,7 @@ __version__ = [0, 0]
 
 
 import asyncio
+import settings
 from settings import logger
 
 
@@ -21,6 +22,8 @@ class UDPHost:
         logger.info('host connect to {} {}'.format(host, port))
 
     async def create_listener(self, port):
+        if self.check_port_busy(port):
+            return
         logger.info('UDPHost create_listener')
         loop = asyncio.get_running_loop()
         logger.info('host create_listener on port {}'.format(port))
@@ -32,11 +35,13 @@ class UDPHost:
             'protocol': protocol,
         }
 
+    def check_port_busy(self, port):
+        return port in self.listeners
+
     async def serve_forever(self):
-        while True:
-            # TODO check function
-            logger.info('UDPHost serve_forever')
-            await asyncio.sleep(1)
+        logger.info('UDPHost serve_forever')
+        while self.listeners or self.connections:
+            await asyncio.sleep(settings.time_check_host_is_alive)
 
     def shutdown_listener(self, port):
         if not port in self.listeners:
