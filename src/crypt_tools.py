@@ -10,19 +10,23 @@ import pycrypto
 
 
 class Tools:
+    def __init__(self):
+        self.get_fingerprint()
+
     def get_fingerprint(self):
         if self.get_fingerprint_from_file():
             return self.fingerprint
         self.generate_new_fingerprin()
         self.save_fingerprint()
-        return self.fingerprint
 
-    def __get_fingerprint_from_file(self):
+    def get_fingerprint_from_file(self):
         # TODO
         pass
 
-    def __generate_new_fingerprin(self):
+    def generate_new_fingerprin(self):
         # TODO
         pass
 
+    def save_fingerprint(self):
+        pass
 

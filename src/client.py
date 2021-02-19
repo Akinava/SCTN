@@ -21,10 +21,6 @@ class ClientHandler(protocol.GeneralProtocol):
         'first_swarm_peer': None,
     }
 
-    def extend(self, handler):
-        # add inherit functions from handler to self
-        pass
-
     def define_first_swarm_peer(self, request):
         # connect to peer
         # TODO
@@ -32,10 +28,29 @@ class ClientHandler(protocol.GeneralProtocol):
 
 
 class Client(host.UDPHost):
-    async def run(self, handler):
-        self.crypto = crypt_tools.Tools()
-        self.user_handler = handler
-        pass
-        # get fingerprint
+    def __init__(self, handler):
+        logger.info('Client init')
+        super(Client, self).__init__(handler=ClientHandler)
+        self.extend_handler(handler)
+        self.init_crypt_tools()
+
+    def init_crypt_tools(self):
+        self.crypt_tools = crypt_tools.Tools()
+
+    async def run(self):
+        logger.info('Client run')
+
+        import time
+        time.sleep(5)
+
         # get swarm peers / connect /
         # get swarm server / connect / get swarm peer / connect
+
+    def extend_handler(self, handler):
+        logger.info('Client extend')
+        self.handler.protocol.update(handler.protocol)
+        for func_name in dir(handler):
+            if hasattr(self.handler, func_name):
+                continue
+            func = getattr(handler, func_name)
+            setattr(self.handler, func_name, func)

@@ -7,8 +7,11 @@ __version__ = [0, 0]
 
 
 import sys
+import os
+from pathlib import Path
 import asyncio
-sys.path.append('../src')
+path = Path(os.path.dirname(os.path.realpath(__file__))).parent
+sys.path.append(os.path.join(path, 'src'))
 import client
 from settings import logger
 
