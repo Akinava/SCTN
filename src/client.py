@@ -32,8 +32,9 @@ class ClientHandler(protocol.GeneralProtocol):
 
 
 class Client(host.UDPHost):
-    async def run(self):
+    async def run(self, handler):
         self.crypto = crypt_tools.Tools()
+        self.user_handler = handler
         pass
         # get fingerprint
         # get swarm peers / connect /

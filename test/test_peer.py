@@ -13,7 +13,7 @@ import client
 from settings import logger
 
 
-class ClientHandler():
+class TestPeerHandler():
     protocol = {
         'request': 'response',
         'peer_hello': None,
@@ -26,6 +26,6 @@ class ClientHandler():
 
 if __name__ == '__main__':
     logger.info('test client start')
-    test_client = client.Client(handler=ClientHandler)
+    test_client = client.Client(handler=TestPeerHandler)
     asyncio.run(test_client.run())
     logger.info('test client shutdown')

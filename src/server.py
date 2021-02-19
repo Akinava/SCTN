@@ -28,12 +28,15 @@ class ServerHandler(protocol.GeneralProtocol):
 
 class Server(host.UDPHost):
     async def run(self):
-        self.create_listener(settings.default_port)
+        logger.info('Server run')
+        await self.create_listener(settings.default_port)
         self.crypto = crypt_tools.Tools()
+
+        await self.serve_forever()
 
 
 if __name__ == '__main__':
     logger.info('server start')
-    server = Server(ServerHandler)
+    server = Server(handler=ServerHandler)
     asyncio.run(server.run())
     logger.info('server shutdown')

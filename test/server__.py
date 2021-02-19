@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 
 class EchoServerProtocol:
@@ -9,6 +10,7 @@ class EchoServerProtocol:
         request = data.decode()
         response = "Hello Client"
         print('Received %r from %s' % (request, addr))
+        time.sleep(5)
         print('Send %r to %s' % (response, addr))
         self.transport.sendto(response.encode(), addr)
 
@@ -41,3 +43,13 @@ async def main():
 
 
 asyncio.run(main())
+
+# async def
+# await
+
+# await asyncio.wait()
+
+
+# loop = asyncio.get_event_loop()
+# loop.run_until_complete()
+# loop.close()
