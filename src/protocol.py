@@ -6,11 +6,17 @@ __license__ = "MIT License"
 __version__ = [0, 0]
 
 
+import sys
+from settings import logger
+
+
 class GeneralProtocol:
     def connection_made(self, transport):
+        logger.info('GeneralProtocol connection_made')
         self.transport = transport
 
     def datagram_received(self, data, addr):
+        logger.info('GeneralProtocol datagram_received')
         request = data.decode()
         response = self.handle(request)
         print('Received %r from %s' % (request, addr))
@@ -20,9 +26,11 @@ class GeneralProtocol:
         self.transport.sendto(response.encode(), addr)
 
     def connection_lost(self, addr):
+        logger.info('GeneralProtocol connection_lost')
         pass
 
     def handle(self, request):
+        logger.info('GeneralProtocol handle')
         # TODO make a tread
         request_name = self.define_request(request)
         if request_name is None:
@@ -35,7 +43,7 @@ class GeneralProtocol:
     def define_request(self, request):
         self_functions = dir(self)
         for function_name in self_functions:
-            if function_name == 'define_request':
+            if function_name == sys._getframe().f_code.co_name:
                 continue
             if not 'define_' in function_name:
                 continue
