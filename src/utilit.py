@@ -40,7 +40,6 @@ def import_options():
         setattr(settings, key, value)
 
 
-
 def setup_settings():
     setup_logger()
     import_config()
