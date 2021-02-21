@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Akinava'
 __author_email__ = 'akinava@gmail.com'
-__copyright__ = "Copyright © 2019"
-__license__ = "MIT License"
+__copyright__ = 'Copyright © 2019'
+__license__ = 'MIT License'
 __version__ = [0, 0]
 
 
@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import settings
+import getopt
 
 
 def setup_logger():
@@ -30,6 +31,17 @@ def import_config():
             setattr(settings, k, v)
 
 
+def import_options():
+    options, args = getopt.parser()
+    for key in vars(options):
+        value = getattr(options, key)
+        if value is None:
+            continue
+        setattr(settings, key, value)
+
+
+
 def setup_settings():
     setup_logger()
     import_config()
+    import_options()
