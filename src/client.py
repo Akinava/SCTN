@@ -55,7 +55,7 @@ class Client(host.UDPHost):
         pass
 
     def ask_server_for_connections(self):
-        # read servers list
+        # servers = # read servers from file
         # get random
         # send request to server
         # TODO
