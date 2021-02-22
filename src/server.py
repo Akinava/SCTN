@@ -11,7 +11,6 @@ import settings
 from settings import logger
 import host
 import protocol
-import crypt_tools
 
 
 class ServerHandler(protocol.GeneralProtocol):
@@ -29,14 +28,11 @@ class ServerHandler(protocol.GeneralProtocol):
 class Server(host.UDPHost):
     async def run(self):
         logger.info('Server run')
-        self.crypto = crypt_tools.Tools()
         await self.create_listener(settings.default_port)
         await self.serve_forever()
 
 
 if __name__ == '__main__':
-    logger.info('get opt')
-
     logger.info('server start')
     server = Server(handler=ServerHandler)
     asyncio.run(server.run())

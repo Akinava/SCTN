@@ -24,6 +24,6 @@ host_max_udp_mtu = 1432
 
 socket_buffer_size = 1024
 
-time_check_host_is_alive = 0.1
+time_check = 0.1
 
 utilit.setup_settings()

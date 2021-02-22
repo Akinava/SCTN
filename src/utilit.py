@@ -28,6 +28,8 @@ def import_config():
     with open(os.path.join(settings.path, settings.config_file), 'r') as cfg_file:
         config = json.loads(cfg_file.read())
         for k, v in config.items():
+            if hasattr(settings, k):
+                continue
             setattr(settings, k, v)
 
 
@@ -42,5 +44,5 @@ def import_options():
 
 def setup_settings():
     setup_logger()
-    import_config()
     import_options()
+    import_config()

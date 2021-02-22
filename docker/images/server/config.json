@@ -1,6 +1,5 @@
 {
   "shadow_file": "shadow",
-  "peers_file": "peers.json",
   "default_port": 2003,
   "peer_live_points": 5,
   "peer_ping_time_seconds": 5

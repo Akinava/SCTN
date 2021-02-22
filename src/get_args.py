@@ -13,8 +13,8 @@ def parser():
     parser = OptionParser()
     parser.add_option('-p', '--port', dest='default_port', type='int',
                   help='listener port', default=None)
-    parser.add_option('-w', '--wallet', dest='shadow_file', metavar='FILE',
+    parser.add_option('-s', '--s', dest='shadow_file', metavar='FILE',
                       help='shadow file', default=None)
-    parser.add_option('-c', '--connections', dest='peers_file', metavar='FILE',
-                      help='peers file', default=None)
+    parser.add_option('-c', '--config', dest='config_file', metavar='FILE',
+                      help='config file', default=None)
     return parser.parse_args()

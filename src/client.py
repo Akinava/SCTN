@@ -10,7 +10,6 @@ from settings import logger
 import settings
 import host
 import protocol
-import crypt_tools
 
 
 class ClientHandler(protocol.GeneralProtocol):
@@ -32,20 +31,38 @@ class Client(host.UDPHost):
         logger.info('Client init')
         super(Client, self).__init__(handler=ClientHandler)
         self.extend_handler(handler)
-        self.init_crypt_tools()
-
-    def init_crypt_tools(self):
-        self.crypt_tools = crypt_tools.Tools()
 
     async def run(self):
         logger.info('Client run')
-        self.crypto = crypt_tools.Tools()
         await self.create_listener(settings.default_port)
-        import time
-        time.sleep(5)
+        await self.serve_swarm()
 
-        # get swarm peers / connect /
-        # get swarm server / connect / get swarm peer / connect
+    async def serve_swarm(self):
+        while True:
+            if self.are_enough_connections():
+                await asyncio.sleep(settings.time_check)
+                continue
+            if self.ask_client_for_connections():
+                continue
+            if self.ask_server_for_connections():
+                continue
+
+    def ask_client_for_connections(self):
+        # read clients list
+        # get random
+        # send request to client
+        # TODO
+        pass
+
+    def ask_server_for_connections(self):
+        # read servers list
+        # get random
+        # send request to server
+        # TODO
+        pass
+
+    def are_enough_connections(self):
+        return len(self.connections) >= settings.peer_connections
 
     def extend_handler(self, handler):
         logger.info('Client extend')

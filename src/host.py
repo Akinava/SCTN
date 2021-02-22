@@ -9,12 +9,14 @@ __version__ = [0, 0]
 import asyncio
 import settings
 from settings import logger
+import crypt_tools
 
 
 class UDPHost:
     def __init__(self, handler):
         logger.info('UDPHost init')
         self.handler = handler
+        self.crypt_tools = crypt_tools.Tools()
         self.listeners = {}
         self.connections = {}
 
@@ -41,7 +43,7 @@ class UDPHost:
     async def serve_forever(self):
         logger.info('UDPHost serve_forever')
         while self.listeners or self.connections:
-            await asyncio.sleep(settings.time_check_host_is_alive)
+            await asyncio.sleep(settings.time_check)
 
     def shutdown_listener(self, port):
         if not port in self.listeners:
