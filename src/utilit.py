@@ -11,7 +11,7 @@ import os
 import sys
 import logging
 import settings
-import getargs
+import get_args
 
 
 def setup_logger():
@@ -32,7 +32,7 @@ def import_config():
 
 
 def import_options():
-    options, args = getargs.parser()
+    options, args = get_args.parser()
     for key in vars(options):
         value = getattr(options, key)
         if value is None:

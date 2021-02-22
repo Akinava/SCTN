@@ -39,7 +39,8 @@ class Client(host.UDPHost):
 
     async def run(self):
         logger.info('Client run')
-
+        self.crypto = crypt_tools.Tools()
+        await self.create_listener(settings.default_port)
         import time
         time.sleep(5)
 

@@ -19,7 +19,8 @@ from settings import logger
 class TestPeerHandler():
     protocol = {
         'request': 'response',
-        'peer_hello': None,
+        'peer_hello': 'peer_time',
+        'peer_time': None,
     }
 
     def define_peer_hello(self, request):

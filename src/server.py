@@ -29,8 +29,8 @@ class ServerHandler(protocol.GeneralProtocol):
 class Server(host.UDPHost):
     async def run(self):
         logger.info('Server run')
-        await self.create_listener(settings.default_port)
         self.crypto = crypt_tools.Tools()
+        await self.create_listener(settings.default_port)
         await self.serve_forever()
 
 
