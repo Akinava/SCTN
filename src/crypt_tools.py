@@ -16,7 +16,6 @@ from settings import logger
 class Tools:
     def __init__(self):
         logger.info('crypt_tools init')
-        print(settings.shadow_file)
         self.init_ecdsa()
 
     def init_ecdsa(self):
@@ -54,7 +53,7 @@ class Tools:
         shadow_data = self.read_shadow_file()
         if shadow_data is None:
             return False
-        ecdsa_priv_key_b58 = shadow_data.get('ecdsa')
+        ecdsa_priv_key_b58 = shadow_data.get('ecdsa', {}).get('key')
         if ecdsa_priv_key_b58 is None:
             return False
         ecdsa_priv_key = pycrypto.B58().unpack(ecdsa_priv_key_b58)
@@ -69,7 +68,12 @@ class Tools:
         logger.info('crypt_tools save_ecdsa')
         ecdsa_priv_key = self.ecdsa.get_priv_key()
         ecdsa_priv_key_b58 = pycrypto.B58().pack(ecdsa_priv_key)
-        self.update_shadow_file({'ecdsa': ecdsa_priv_key_b58})
+        fingerprint_b58 = pycrypto.B58().pack(self.get_fingerprint())
+        self.update_shadow_file(
+            {'ecdsa': {
+                'key': ecdsa_priv_key_b58,
+                'fingerprint': fingerprint_b58}}
+        )
 
     def get_fingerprint(self):
         logger.info('crypt_tools get_fingerprint')
