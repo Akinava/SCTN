@@ -12,3 +12,9 @@ Swarm Server Traversal for NAT - Server
 
 sctn
 Swarm Server Traversal for NAT - Client
+
+# run server
+python3 src/server.py -c /Users/akinava/Projects/UDPHost/docker/images/server/config.json -s /Users/akinava/Projects/UDPHost/docker/images/server/shadow
+
+# run client
+python3 test/test_peer.py -c /Users/akinava/Projects/UDPHost/docker/images/client/config.json -s /Users/akinava/Projects/UDPHost/docker/images/client/shadow -p /Users/akinava/Projects/UDPHost/docker/images/client/peers.json

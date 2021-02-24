@@ -69,3 +69,6 @@ class GeneralProtocol:
     def define_swarm_hello(self, request):
         # TODO
         pass
+
+    def do_swarm_ping(self):
+        return ''

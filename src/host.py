@@ -38,7 +38,20 @@ class UDPHost:
     async def serve_forever(self):
         logger.info('UDPHost serve_forever')
         while self.listener or self.connections:
-            await asyncio.sleep(settings.time_check)
+            await asyncio.sleep(settings.peer_ping_time_seconds)
+            self.ping_connections()
+            self.clean_connections()
+
+    def ping_connections(self):
+        for connection in self.connections:
+            connection.send(self.handler.do_swarm_ping())
+
+    def clean_connections(self):
+        alive_connections = []
+        for connection in self.connections:
+            if connection.is_alive():
+                alive_connections.append(connection)
+        self.connections = alive_connections
 
     def shutdown_listener(self):
         self.listener['transport'].close()
