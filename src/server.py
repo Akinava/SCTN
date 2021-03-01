@@ -17,11 +17,11 @@ class ServerHandler(protocol.GeneralProtocol):
     protocol = {
         'request': 'response',
         'swarm_ping': None,
-        'swarm_hello': 'send_first_swarm_peer',
+        'swarm_client_hello': 'swarm_client',
     }
 
-    def do_send_first_swarm_peer(self, request):
-        # TODO
+    def do_swarm_client(self, request):
+        # TODO return ip port and fingerprint of the first in list swarm client
         return ''
 
 

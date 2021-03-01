@@ -19,12 +19,12 @@ from settings import logger
 class TestPeerHandler():
     protocol = {
         'request': 'response',
-        'peer_hello': 'peer_time',
-        'peer_time': None,
+        'test_peer_hello': 'test_peer_time',
+        'test_peer_time': None,
     }
 
-    def define_peer_hello(self, request):
-        if request == 'peer hello':
+    def define_test_peer_hello(self, request):
+        if request == 'test peer hello':
             return True
 
 

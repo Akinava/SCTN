@@ -9,6 +9,7 @@ __version__ = [0, 0]
 import json
 import os
 import sys
+import random
 import logging
 import settings
 import get_args
@@ -46,3 +47,27 @@ def setup_settings():
     setup_logger()
     import_options()
     import_config()
+
+
+def get_rundom_server():
+    peers = read_peers_from_file()
+    servers = filter_peers(peers, 'server')
+    return get_rundom_peer(servers)
+
+
+def filter_peers(peers, filter):
+    filtered_peers = []
+    for peer in peers:
+        if peer['type'] != filter:
+            continue
+        filtered_peers.append(peer)
+    return filtered_peers
+
+
+def read_peers_from_file():
+    with open(settings.peers_file, 'r') as f:
+        return json.loads(f.read())
+
+
+def get_rundom_peer(peers):
+    return random.choice(peers)

@@ -9,14 +9,12 @@ __version__ = [0, 0]
 import asyncio
 import settings
 from settings import logger
-import crypt_tools
 
 
 class UDPHost:
     def __init__(self, handler):
         logger.info('UDPHost init')
-        self.handler = handler
-        self.crypt_tools = crypt_tools.Tools()
+        self.handler = handler()
         self.connections = {}
 
     def connect(self, host, port):
@@ -27,7 +25,7 @@ class UDPHost:
         loop = asyncio.get_running_loop()
         logger.info('host create_listener on port {}'.format(port))
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: self.handler(),
+            lambda: self.handler,
             local_addr=('0.0.0.0', port))
         self.listener = {
             'port': port,
@@ -38,13 +36,17 @@ class UDPHost:
     async def serve_forever(self):
         logger.info('UDPHost serve_forever')
         while self.listener or self.connections:
-            await asyncio.sleep(settings.peer_ping_time_seconds)
             self.ping_connections()
             self.clean_connections()
+            await asyncio.sleep(settings.peer_ping_time_seconds)
 
     def ping_connections(self):
         for connection in self.connections:
-            connection.send(self.handler.do_swarm_ping())
+            self.send(connection, self.handler.do_swarm_ping())
+
+    def send(self, connection, message):
+        logger.info('UDPHost send')
+        # TODO
 
     def clean_connections(self):
         alive_connections = []

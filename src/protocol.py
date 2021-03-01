@@ -8,9 +8,15 @@ __version__ = [0, 0]
 
 import sys
 from settings import logger
+import crypt_tools
 
 
 class GeneralProtocol:
+    def __init__(self):
+        logger.info('GeneralProtocol __init__')
+        self.crypt_tools = crypt_tools.Tools()
+        self.test = 1
+
     def connection_made(self, transport):
         logger.info('GeneralProtocol connection_made')
         self.transport = transport
@@ -41,6 +47,7 @@ class GeneralProtocol:
         return response_function(request)
 
     def define_request(self, request):
+        logger.info('GeneralProtocol define_request')
         self_functions = dir(self)
         for function_name in self_functions:
             if function_name == sys._getframe().f_code.co_name:
@@ -52,6 +59,7 @@ class GeneralProtocol:
                 continue
             request_name = function_name.replace('define_', '')
             return request_name
+        logger.warn('GeneralProtocol can not define request')
         return None
 
     def get_response_function(self, request_name):
@@ -66,7 +74,7 @@ class GeneralProtocol:
             return True
         return False
 
-    def define_swarm_hello(self, request):
+    def define_swarm_client_hello(self, request):
         # TODO
         pass
 
