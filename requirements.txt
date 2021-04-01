@@ -1,2 +1,1 @@
-pycrypto
-ecdsa
+git+https://github.com/Akinava/crypto-tool.git@v0.0

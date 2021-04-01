@@ -11,18 +11,53 @@ import settings
 from settings import logger
 import host
 import protocol
+from utilit import pack_host, pack_port
 
 
 class ServerHandler(protocol.GeneralProtocol):
+    keep_connect_flag = chr(0).encode()
+    disconnect_flag = chr(1).encode()
+
     protocol = {
         'request': 'response',
         'swarm_ping': None,
-        'swarm_client_hello': 'swarm_client',
+        'swarm_request_connect': 'swarm_list',
     }
 
-    def do_swarm_client(self, request):
-        # TODO return ip port and fingerprint of the first in list swarm client
-        return ''
+    current_group = 0
+
+    swarm_clients = {}
+    clients_group_0 = []
+    clients_group_1 = []
+
+    def do_swarm_list(self, connection):
+        logger.info('ServerHandler do_swarm_list')
+        self.set_connection_fingerprint(connection)
+        self.add_swarm_client(connection)
+        self.send_swarm_response(connection)
+
+
+    def get_swarm_list_response(self):
+        swarm_list_response = b''
+        for connection in self.swarm_list:
+            swarm_list_response += connection.get_fingerprint()
+            swarm_list_response += pack_host(connection.get_remote_host())
+            swarm_list_response += pack_port(connection.get_remote_port())
+        return swarm_list_response
+
+    def set_connection_fingerprint(self, connection):
+        connection.set_fingerprint(connection.get_request())
+
+    def add_swarm_client_in_list(self, connection):
+        # TODO
+        pass
+
+    def send_swarm_response(self, connection):
+        # TODO
+        pass
+
+    def sign_message(self, message):
+        return self.crypt_tools.sign_message(message)
 
 
 class Server(host.UDPHost):

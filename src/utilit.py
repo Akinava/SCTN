@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import random
+import struct
 import logging
 import settings
 import get_args
@@ -71,3 +72,10 @@ def read_peers_from_file():
 
 def get_rundom_peer(peers):
     return random.choice(peers)
+
+
+def pack_host(host):
+    return ''.join(map(chr, (map(int, map(str, host.split('.')))))).encode()
+
+def pack_port(port):
+    return struct.pack('H', port)

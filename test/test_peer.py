@@ -9,6 +9,7 @@ __version__ = [0, 0]
 import sys
 import os
 from pathlib import Path
+from datetime import datetime
 import asyncio
 path = Path(os.path.dirname(os.path.realpath(__file__))).parent
 sys.path.append(os.path.join(path, 'src'))
@@ -23,9 +24,19 @@ class TestPeerHandler():
         'test_peer_time': None,
     }
 
-    def define_test_peer_hello(self, request):
-        if request == 'test peer hello':
+    def init(self):
+        self.do_test_peer_hello()
+
+    def do_test_peer_hello(self):
+        # send 'test peer hello' to all test_peers
+        pass
+
+    def define_test_peer_hello(self, connection):
+        if connection.get_request() == 'test peer hello':
             return True
+
+    def do_test_peer_time(self, connection):
+        return datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
 
 
 if __name__ == '__main__':

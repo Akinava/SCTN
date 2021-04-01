@@ -2,5 +2,6 @@
   "shadow_file": "shadow",
   "default_port": 2003,
   "peer_live_points": 5,
-  "peer_ping_time_seconds": 5
+  "peer_ping_time_seconds": 5,
+  "peer_connections": 10
 }

@@ -8,7 +8,7 @@ __version__ = [0, 0]
 
 import os
 import json
-import pycrypto
+from cryptotool import *
 import settings
 from settings import logger
 
@@ -56,19 +56,19 @@ class Tools:
         ecdsa_priv_key_b58 = shadow_data.get('ecdsa', {}).get('key')
         if ecdsa_priv_key_b58 is None:
             return False
-        ecdsa_priv_key = pycrypto.B58().unpack(ecdsa_priv_key_b58)
-        self.ecdsa = pycrypto.ECDSA(priv_key=ecdsa_priv_key)
+        ecdsa_priv_key = B58().unpack(ecdsa_priv_key_b58)
+        self.ecdsa = ECDSA(priv_key=ecdsa_priv_key)
         return True
 
     def generate_new_ecdsa(self):
         logger.info('crypt_tools generate_new_ecdsa')
-        self.ecdsa = pycrypto.ECDSA()
+        self.ecdsa = ECDSA()
 
     def save_ecdsa(self):
         logger.info('crypt_tools save_ecdsa')
         ecdsa_priv_key = self.ecdsa.get_priv_key()
-        ecdsa_priv_key_b58 = pycrypto.B58().pack(ecdsa_priv_key)
-        fingerprint_b58 = pycrypto.B58().pack(self.get_fingerprint())
+        ecdsa_priv_key_b58 = B58().pack(ecdsa_priv_key)
+        fingerprint_b58 = B58().pack(self.get_fingerprint())
         self.update_shadow_file(
             {'ecdsa': {
                 'key': ecdsa_priv_key_b58,
@@ -81,6 +81,16 @@ class Tools:
             self.make_fingerprint()
         return self.fingerprint
 
+    def get_fingerprint_len(self):
+        return len(self.get_fingerprint())
+
     def make_fingerprint(self):
         open_key = self.ecdsa.get_pub_key()
-        self.fingerprint = pycrypto.sha256(open_key)
+        self.fingerprint = sha256(open_key)
+
+    def sign_message(self, message):
+        print('Tools, sign_message: message|sign|pub_key', len(message), len(self.ecdsa.sign(message)), len(self.ecdsa.get_pub_key()))
+        return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
+
+
+cryptography = Tools()

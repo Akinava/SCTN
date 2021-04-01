@@ -9,13 +9,16 @@ __version__ = [0, 0]
 import asyncio
 import settings
 from settings import logger
+from connection import Connection
 
 
 class UDPHost:
     def __init__(self, handler):
         logger.info('UDPHost init')
-        self.handler = handler()
-        self.connections = {}
+        self.handler = handler
+        self.connections = []
+        self.listener = None
+        self.local_host = '0.0.0.0'
 
     def connect(self, host, port):
         logger.info('host connect to {} {}'.format(host, port))
@@ -24,14 +27,36 @@ class UDPHost:
         logger.info('UDPHost create_listener')
         loop = asyncio.get_running_loop()
         logger.info('host create_listener on port {}'.format(port))
+
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: self.handler,
-            local_addr=('0.0.0.0', port))
-        self.listener = {
-            'port': port,
-            'transport': transport,
-            'protocol': protocol,
-        }
+            lambda: self.handler(),
+            local_addr=(self.local_host, port))
+        self.listener = Connection()
+        self.listener.set_listener(
+            local_port=port,
+            transport=transport,
+            protocol=protocol)
+
+    async def send(self, connection, message, local_port=None):
+        logger.info('UDPHost send')
+
+        loop = asyncio.get_running_loop()
+        on_con_lost = loop.create_future()
+        local_addr = (self.local_host, local_port) if local_port else None
+
+        transport, protocol = await loop.create_datagram_endpoint(
+            lambda: self.handler(message, on_con_lost),
+            remote_addr=connection.get_remote_addr(),
+            local_addr=local_addr)
+
+        connection.set_transport(transport)
+        connection.set_protocol(protocol)
+        self.connections.append(connection)
+
+        try:
+            await on_con_lost
+        finally:
+            connection.close_transport()
 
     async def serve_forever(self):
         logger.info('UDPHost serve_forever')
@@ -44,10 +69,6 @@ class UDPHost:
         for connection in self.connections:
             self.send(connection, self.handler.do_swarm_ping())
 
-    def send(self, connection, message):
-        logger.info('UDPHost send')
-        # TODO
-
     def clean_connections(self):
         alive_connections = []
         for connection in self.connections:
@@ -56,8 +77,8 @@ class UDPHost:
         self.connections = alive_connections
 
     def shutdown_listener(self):
-        self.listener['transport'].close()
-        self.listener = {}
+        self.listener.close_transport()
+        self.listener = None
 
     def __del__(self):
         logger.info('UDPHost __del__')
