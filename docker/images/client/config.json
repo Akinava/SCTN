@@ -2,7 +2,7 @@
   "shadow_file": "shadow",
   "peers_file": "peers.json",
   "default_port": 2002,
-  "peer_live_points": 5,
+  "peer_timeout_seconds": 60,
   "peer_ping_time_seconds": 5,
   "peer_connections": 10
 }

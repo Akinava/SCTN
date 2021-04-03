@@ -19,20 +19,18 @@ class ClientHandler(protocol.GeneralProtocol):
     protocol = {
         'request': 'response',
         'swarm_ping': None,
-        'swarm_list': 'handle_swarm',
+        'swarm_peer_response': 'handle_peer',
     }
 
-    def define_swarm_list(self, connection):
-        logger.info('ClientHandler define_swarm_list')
-        # connect to peer
+    def do_swarm_request_connect(self, connection, request_type):
+        logger.info('ClientHandler do_swarm_request_connect')
+        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint() + self.request_type_set[request_type]
+
+    def define_swarm_peer_response(self, connection):
         # TODO
         pass
 
-    def do_swarm_request_connect(self):
-        logger.info('ClientHandler do_swarm_request_connect')
-        return self.crypt_tools.get_fingerprint()
-
-    def do_handle_swarm(self, connection):
+    def do_handle_peer(self, connection):
         pass
         # connect to swarm
         # if swarm condition and hasattr(self, 'init'):
@@ -56,12 +54,12 @@ class Client(host.UDPHost):
         while True:
             if self.has_enough_connections():
                 await asyncio.sleep(settings.peer_ping_time_seconds)
-            elif self.has_client_connections():
-                self.ask_client_for_connections()
+            elif self.has_stable_connections():
+                await self.ask_client_for_connections()
                 continue
                 # needs to save when it is done to avoid spamming client check all connections with status waiting or ask a new one
             elif self.has_saved_clients():
-                self.connect_to_saved_client()
+                await self.connect_to_saved_client()
                 continue
             else:
                 await self.connect_to_saved_server()
@@ -78,9 +76,9 @@ class Client(host.UDPHost):
         # TODO FIXME
         return False
 
-    def has_client_connections(self):
+    def has_stable_connections(self):
         logger.info('Client has_client_connections')
-        # check client has connection with client
+        # check client has two or more connection
         # TODO FIXME
         return False
 
@@ -103,7 +101,7 @@ class Client(host.UDPHost):
         server_connection = Connection().loads(server)
         await self.send(
             connection=server_connection,
-            message=self.handler().do_swarm_request_connect(),
+            message=self.handler().do_swarm_request_connect(server_connection, 'request_eny_peer'),
             local_port=settings.default_port)
 
     def has_enough_connections(self):

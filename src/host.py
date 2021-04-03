@@ -51,6 +51,7 @@ class UDPHost:
 
         connection.set_transport(transport)
         connection.set_protocol(protocol)
+        connettion.set_net(self.connections)
         self.connections.append(connection)
 
         try:
@@ -62,19 +63,14 @@ class UDPHost:
         logger.info('UDPHost serve_forever')
         while self.listener or self.connections:
             self.ping_connections()
-            self.clean_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
 
     def ping_connections(self):
         for connection in self.connections:
-            self.send(connection, self.handler.do_swarm_ping())
-
-    def clean_connections(self):
-        alive_connections = []
-        for connection in self.connections:
             if connection.is_alive():
-                alive_connections.append(connection)
-        self.connections = alive_connections
+                self.send(connection, self.handler.do_swarm_ping())
+            else:
+                connection.shutdown()
 
     def shutdown_listener(self):
         self.listener.close_transport()

@@ -6,13 +6,18 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
+import struct
+from time import time
 import settings
 from settings import logger
 
 
 class Connection:
     def __init__(self):
-        self.live_points = settings.peer_live_points
+        self.set_last_response()
+
+    def set_last_response(self):
+        self.last_response = time()
 
     def loads(self, connection_data):
         for key, val in connection_data.items():
@@ -22,8 +27,13 @@ class Connection:
         return self
 
     def is_alive(self):
-        pass
-        # TODO
+        return time() - self.last_response < settings.peer_timeout_seconds
+
+    def set_net(self, net):
+        self.net= net
+
+    def shutdown(self):
+        self.net.remove(self)
 
     def set_transport(self, transport):
         self.transport = transport
@@ -36,6 +46,9 @@ class Connection:
 
     def get_remote_addr(self):
         return self.remote_host, self.remote_port
+
+    def dump_addr(self):
+        return struct.pack('>BBBBH', *(map(int, self.remote_host.split('.'))), self.remote_port)
 
     def __eq__(self, connection):
         if self.remote_host != connection.remote_host:
