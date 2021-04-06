@@ -13,14 +13,8 @@ from connection import Connection
 
 
 class GeneralProtocol:
-    request_type_set = {
-        'request_peer_from_list_0': '\x00',
-        'request_peer_from_list_1': '\x01',
-        'request_eny_peer': b'\x02',
-        'disconnect': b'\xff',
-    }
-    request_type_get = {v: k for k, v in request_type_set.items()}
-    request_type_flag_lengh = len(next(iter(request_type_get)))
+    disconnect_flag = b'\xff'
+    keep_connection_flag = b'\x00'
 
     def __init__(self, message=None, on_con_lost=None):
         logger.info('GeneralProtocol __init__')
@@ -51,6 +45,7 @@ class GeneralProtocol:
 
     def connection_lost(self, addr):
         logger.info('GeneralProtocol connection_lost')
+        # TODO remove this connections
         pass
 
     def handle(self, connection):
@@ -95,7 +90,7 @@ class GeneralProtocol:
         return False
 
     def define_swarm_peer_request(self, connection):
-        check_request_len = self.crypt_tools.get_fingerprint_len() * 2 + self.request_type_flag_lengh == len(connection.get_request())
+        check_request_len = self.crypt_tools.get_fingerprint_len() * 2 == len(connection.get_request())
         check_fingerprint = connection.get_request()[: self.crypt_tools.get_fingerprint_len()] == self.crypt_tools.get_fingerprint()
         return check_request_len and check_fingerprint
 

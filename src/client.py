@@ -22,19 +22,25 @@ class ClientHandler(protocol.GeneralProtocol):
         'swarm_peer_response': 'handle_peer',
     }
 
-    def do_swarm_request_connect(self, connection, request_type):
+    def do_swarm_request_connect(self, connection):
         logger.info('ClientHandler do_swarm_request_connect')
-        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint() + self.request_type_set[request_type]
+        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
 
     def define_swarm_peer_response(self, connection):
-        # TODO
-        pass
+        response = connection.get_request()
+        if connection.get_fingerprint() != response[0: self.crypt_tools.get_fingerprint_len()]:
+            return False
+        if not response[-1] in [self.disconnect_flag, self.keep_connection_flag]:
+            return False
+        return True
 
     def do_handle_peer(self, connection):
-        pass
-        # connect to swarm
-        # if swarm condition and hasattr(self, 'init'):
-        #   self.init()
+        response = connection.get_request()
+        neighbour_fingerprint = response[self.crypt_tools.get_fingerprint_len(): self.crypt_tools.get_fingerprint_len()*2]
+        # TODO
+        # load ip port
+        # handle connect/disconnect
+        # connect to neighbour
 
 
 class Client(host.UDPHost):
@@ -101,7 +107,7 @@ class Client(host.UDPHost):
         server_connection = Connection().loads(server)
         await self.send(
             connection=server_connection,
-            message=self.handler().do_swarm_request_connect(server_connection, 'request_eny_peer'),
+            message=self.handler().do_swarm_request_connect(server_connection),
             local_port=settings.default_port)
 
     def has_enough_connections(self):

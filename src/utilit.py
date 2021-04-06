@@ -79,3 +79,6 @@ def pack_host(host):
 
 def pack_port(port):
     return struct.pack('H', port)
+
+def binary_not(b):
+    return 1 - b
