@@ -16,6 +16,13 @@ import settings
 import get_args
 
 
+class Singleton(object):
+    def __new__(cls):
+        if not hasattr(cls, '_instance'):
+            cls._instance = super(Singleton, cls).__new__(cls)
+        return cls._instance
+
+
 def setup_logger():
     settings.logger = logging.getLogger(__name__)
     settings.logger.setLevel(settings.logging_level)
@@ -82,3 +89,9 @@ def pack_port(port):
 
 def binary_not(b):
     return 1 - b
+
+def unpack_stream(data, length):
+    return data[ :length], data[length: ]
+
+
+

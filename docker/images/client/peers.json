@@ -1,5 +1,6 @@
 [
   {
+    "protocol": "udp",
     "type": "server",
     "fingerprint": "D1KwsFqGgTkFFGkSzErhHwnL4QyJdBJ1WbPYgmqD33df",
     "host": "127.0.0.1",

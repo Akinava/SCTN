@@ -30,7 +30,7 @@ class Connection:
         return time() - self.last_response < settings.peer_timeout_seconds
 
     def set_net(self, net):
-        self.net= net
+        self.net = net
 
     def shutdown(self):
         self.net.remove(self)
@@ -49,6 +49,12 @@ class Connection:
 
     def dump_addr(self):
         return struct.pack('>BBBBH', *(map(int, self.remote_host.split('.'))), self.remote_port)
+
+    def load_addr(self, data):
+        port = struct.unpack('>H', data[4:6])
+        ip_map = struct.unpack('>BBBB', data[0:4])
+        ip = '.'.join(map, ip_map)
+        return ip, port
 
     def __eq__(self, connection):
         if self.remote_host != connection.remote_host:

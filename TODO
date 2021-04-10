@@ -7,11 +7,11 @@ recive data/send data in list
 check if message is dublicate / handler
 check flag recived / if not try again several times if not / try to reconnect / if not remove host from live hosts list
 
-sstn
+UDP-SSTN
 Swarm Server Traversal for NAT - Server
 
 sctn
-Swarm Server Traversal for NAT - Client
+Swarm Client Traversal for NAT - Client
 
 
 # rebuild and run project in local containers

@@ -18,7 +18,7 @@ class GeneralProtocol:
 
     def __init__(self, message=None, on_con_lost=None):
         logger.info('GeneralProtocol __init__')
-        self.crypt_tools = crypt_tools.cryptography
+        self.crypt_tools = crypt_tools.Tools()
         self.response = message
         self.on_con_lost = on_con_lost
         self.transport = None

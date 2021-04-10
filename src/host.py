@@ -9,7 +9,7 @@ __version__ = [0, 0]
 import asyncio
 import settings
 from settings import logger
-from connection import Connection
+from connection import Connection, NetPool
 
 
 class UDPHost:
@@ -18,7 +18,7 @@ class UDPHost:
         self.handler = handler
         self.connections = []
         self.listener = None
-        self.local_host = '0.0.0.0'
+        self.local_host = settings.local_host
 
     def connect(self, host, port):
         logger.info('host connect to {} {}'.format(host, port))
@@ -61,7 +61,7 @@ class UDPHost:
 
     async def serve_forever(self):
         logger.info('UDPHost serve_forever')
-        while self.listener or self.connections:
+        while self.connections:
             self.ping_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
 
@@ -72,11 +72,5 @@ class UDPHost:
             else:
                 connection.shutdown()
 
-    def shutdown_listener(self):
-        self.listener.close_transport()
-        self.listener = None
-
     def __del__(self):
-        logger.info('UDPHost __del__')
-        #for port in self.listeners:
-        #    self.shutdown_listener()
+        logger.info('')

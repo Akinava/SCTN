@@ -11,7 +11,7 @@ from settings import logger
 import settings
 import host
 import protocol
-import utilit
+from utilit import unpack_stream, get_rundom_server
 from connection import Connection
 
 
@@ -24,23 +24,45 @@ class ClientHandler(protocol.GeneralProtocol):
 
     def do_swarm_request_connect(self, connection):
         logger.info('ClientHandler do_swarm_request_connect')
+        print([connection.get_fingerprint(), self.crypt_tools.get_fingerprint()])
         return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
 
     def define_swarm_peer_response(self, connection):
-        response = connection.get_request()
-        if connection.get_fingerprint() != response[0: self.crypt_tools.get_fingerprint_len()]:
+        if connection.get_fingerprint() != self.unpack_swarm_peer(connection)['my_figerprint']:
             return False
-        if not response[-1] in [self.disconnect_flag, self.keep_connection_flag]:
+        if not self.get_connect_flag(connection) in [self.disconnect_flag, self.keep_connection_flag]:
             return False
         return True
 
     def do_handle_peer(self, connection):
-        response = connection.get_request()
-        neighbour_fingerprint = response[self.crypt_tools.get_fingerprint_len(): self.crypt_tools.get_fingerprint_len()*2]
+        connect_flag = self.get_connect_flag(connection)
+        if connect_flag == self.disconnect_flag():
+            connection.shutdown()
+        neighbour_fingerprint = self.unpack_swarm_peer(connection)['neighbour_fingerprint']
+        neighbour_ip = self.unpack_swarm_peer(connection)['neighbour_ip']
+        neighbour_port = self.unpack_swarm_peer(connection)['neighbour_port']
+
         # TODO
-        # load ip port
-        # handle connect/disconnect
-        # connect to neighbour
+        # save status client is pooling
+        # pool treadeing to neighbour_ip in port range
+
+    def unpack_swarm_peer(self, connection):
+        response = connection.get_request()
+        my_figerprint, rest = unpack_stream(response, self.crypt_tools.get_fingerprint_len())
+        neighbour_fingerprint, rest = unpack_stream(rest, self.crypt_tools.get_fingerprint_len())
+        addr, connect_flag = unpack_stream(rest, 6)
+        ip, port = connection.loads_addr(addr)
+        return {'my_figerprint': my_figerprint,
+                'neighbour_fingerprint': neighbour_fingerprint,
+                'neighbour_ip': ip,
+                'neighbour_port': port,
+                'connect_flag': connect_flag}
+
+    def get_neighbour_addr(self):
+        response[self.crypt_tools.get_fingerprint_len()*2: -1]
+
+    def get_connect_flag(self, connection):
+        return self.unpack_swarm_peer(connection)['connect_flag']
 
 
 class Client(host.UDPHost):
@@ -48,15 +70,19 @@ class Client(host.UDPHost):
         logger.info('Client init')
         super(Client, self).__init__(handler=ClientHandler)
         self.extend_handler(handler)
+        self.__swarm_status = 'creations'  # TODO stable
 
     async def run(self):
         logger.info('Client run')
         #await self.create_listener(settings.default_port)
-        await self.serve_swarm()
-        await self.serve_forever()
+        await self.__make_swarm()
+        await self.__serve_forever()
 
-    async def serve_swarm(self):
-        logger.info('Client serve_swarm')
+    def __check_swarm_status_is_stable(self):
+        return self.__swarm_status == 'stable'
+
+    async def __make_swarm(self):
+        logger.info('')
         while True:
             if self.has_enough_connections():
                 await asyncio.sleep(settings.peer_ping_time_seconds)
@@ -101,9 +127,12 @@ class Client(host.UDPHost):
     async def connect_to_saved_server(self):
         logger.info('Client connect_to_saved_server')
         if self.has_server_connections():
+            # TODO get server_connections
             # set serverv alive_points -= 1 # implementation need to be done in host class / ping
             return True
-        server = utilit.get_rundom_server()
+        # TODO else
+        #   make new connection
+        server = get_rundom_server()
         server_connection = Connection().loads(server)
         await self.send(
             connection=server_connection,

@@ -27,10 +27,6 @@ class TestPeerHandler():
     def init(self):
         self.do_test_peer_hello()
 
-    def do_test_peer_hello(self):
-        # send 'test peer hello' to all test_peers
-        pass
-
     def define_test_peer_hello(self, connection):
         if connection.get_request() == 'test peer hello':
             return True

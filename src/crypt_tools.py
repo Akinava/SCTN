@@ -91,6 +91,3 @@ class Tools:
     def sign_message(self, message):
         print('Tools, sign_message: message|sign|pub_key', len(message), len(self.ecdsa.sign(message)), len(self.ecdsa.get_pub_key()))
         return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
-
-
-cryptography = Tools()
