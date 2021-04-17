@@ -65,7 +65,7 @@ class ClientHandler(protocol.GeneralProtocol):
         return self.unpack_swarm_peer(connection)['connect_flag']
 
 
-class Client(host.UDPHost):
+class Client(host.Host):
     def __init__(self, handler):
         logger.info('Client init')
         super(Client, self).__init__(handler=ClientHandler)

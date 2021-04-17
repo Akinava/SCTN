@@ -140,7 +140,7 @@ class ServerHandler(protocol.GeneralProtocol):
         return self.crypt_tools.sign_message(message)
 
 
-class Server(host.UDPHost):
+class Server(host.Host):
     async def run(self):
         logger.info('Server run')
         await self.create_listener(settings.default_port)

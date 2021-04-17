@@ -12,9 +12,9 @@ from settings import logger
 from connection import Connection, NetPool
 
 
-class UDPHost:
+class Host:
     def __init__(self, handler):
-        logger.info('UDPHost init')
+        logger.info('Host init')
         self.handler = handler
         self.connections = []
         self.listener = None
@@ -24,7 +24,7 @@ class UDPHost:
         logger.info('host connect to {} {}'.format(host, port))
 
     async def create_listener(self, port):
-        logger.info('UDPHost create_listener')
+        logger.info('Host create_listener')
         loop = asyncio.get_running_loop()
         logger.info('host create_listener on port {}'.format(port))
 
@@ -38,7 +38,7 @@ class UDPHost:
             protocol=protocol)
 
     async def send(self, connection, message, local_port=None):
-        logger.info('UDPHost send')
+        logger.info('Host send')
 
         loop = asyncio.get_running_loop()
         on_con_lost = loop.create_future()
@@ -60,7 +60,7 @@ class UDPHost:
             connection.close_transport()
 
     async def serve_forever(self):
-        logger.info('UDPHost serve_forever')
+        logger.info('Host serve_forever')
         while self.connections:
             self.ping_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
