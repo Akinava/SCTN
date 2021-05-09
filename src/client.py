@@ -7,6 +7,7 @@ __version__ = [0, 0]
 
 
 import asyncio
+import struct
 from settings import logger
 import settings
 import host
@@ -17,6 +18,8 @@ from utilit import unpack_stream, get_random_server_from_file
 class ClientHandler(protocol.UDPProtocol):
     disconnect_flag = b'\xff'
     keep_connection_flag = b'\x00'
+    addr_info_len = 6
+    port_info_len = 4
 
     protocol = {
         'request': 'response',
@@ -27,12 +30,15 @@ class ClientHandler(protocol.UDPProtocol):
 
     def do_swarm_peer_request(self, connection):
         logger.info('')
-        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
+        default_port = struct.pack('>H', settings.default_port)
+        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint() + default_port
 
     def define_swarm_peer_response(self, connection):
         if connection.get_fingerprint() != self.__unpack_swarm_peer(connection)['my_figerprint']:
             return False
         if not self.__get_connect_flag(connection) in [self.disconnect_flag, self.keep_connection_flag]:
+            return False
+        if not self.__check_swarm_peer_response_len(connection):
             return False
         return True
 
@@ -42,23 +48,35 @@ class ClientHandler(protocol.UDPProtocol):
             connection.shutdown()
         neighbour_fingerprint = self.__unpack_swarm_peer(connection)['neighbour_fingerprint']
         neighbour_ip = self.__unpack_swarm_peer(connection)['neighbour_ip']
+        default_port = self.__unpack_swarm_peer(connection)['default_port']
         neighbour_port = self.__unpack_swarm_peer(connection)['neighbour_port']
 
         # TODO
         # save status client is pooling
+        # connect to default port
         # pool treadeing to neighbour_ip in port range
 
     def __unpack_swarm_peer(self, connection):
         response = connection.get_request()
         my_figerprint, rest = unpack_stream(response, self.crypt_tools.get_fingerprint_len())
         neighbour_fingerprint, rest = unpack_stream(rest, self.crypt_tools.get_fingerprint_len())
-        addr, connect_flag = unpack_stream(rest, 6)
+        addr, rest = unpack_stream(rest, self.addr_info_len)
+        default_port, connect_flag = unpack_stream(rest, self.port_info_len)
         ip, port = connection.loads_addr(addr)
         return {'my_figerprint': my_figerprint,
                 'neighbour_fingerprint': neighbour_fingerprint,
                 'neighbour_ip': ip,
                 'neighbour_port': port,
+                'default_port': default_port,
                 'connect_flag': connect_flag}
+
+    def __check_swarm_peer_response_len(self, connection):
+        request_len = len(connection.get_request())
+        required_len = self.crypt_tools.get_fingerprint_len() * 2 + \
+            len(self.keep_connection_flag) + \
+            len(self.addr_info_len) + \
+            len(self.port_info_len)
+        return request_len == required_len
 
     def __get_connect_flag(self, connection):
         return self.__unpack_swarm_peer(connection)['connect_flag']
