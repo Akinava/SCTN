@@ -4,5 +4,6 @@
   "peer_connections": 10,
   "shadow_file": "shadow",
   "peers_file": "peers.json",
+  "default_port": 2003,
   "local_host": "0.0.0.0"
 }

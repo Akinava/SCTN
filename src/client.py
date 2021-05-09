@@ -72,13 +72,13 @@ class Client(host.UDPHost):
 
     async def run(self):
         logger.info('')
+        self.listener = await self.create_endpoint(settings.local_host, settings.default_port)
         await self.__serve_swarm()
         await self.serve_forever()
 
     def __extend_handler(self, handler):
         logger.info('')
         object_at_user_handler = handler()
-
         self.__update_handler_protocol(object_at_user_handler)
         self.__update_handler_functions(object_at_user_handler)
 

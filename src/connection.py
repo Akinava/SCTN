@@ -150,3 +150,8 @@ class NetPool(Singleton):
             if connection.type == my_type:
                 group.add(connection)
         return group
+
+    def shutdown(self):
+        for connection in self.__group:
+            connection.shutdown()
+        self.__group = []
