@@ -8,103 +8,145 @@ __version__ = [0, 0]
 
 import struct
 from time import time
+import random
+from utilit import Singleton, encode
 import settings
 from settings import logger
 
 
 class Connection:
-    def __init__(self):
-        self.set_last_response()
-
-    def set_last_response(self):
-        self.last_response = time()
-
-    def loads(self, connection_data):
-        for key, val in connection_data.items():
-            if key in ['host', 'port']:
-                key = 'remote_{}'.format(key)
-            setattr(self, key, val)
-        return self
-
-    def is_alive(self):
-        return time() - self.last_response < settings.peer_timeout_seconds
-
-    def set_net(self, net):
-        self.net = net
-
-    def shutdown(self):
-        self.net.remove(self)
-
-    def set_transport(self, transport):
-        self.transport = transport
-
-    def set_protocol(self, protocol):
-        self.protocol = protocol
-
-    def set_local_port(self, local_port):
-        self.local_port = local_port
-
-    def get_remote_addr(self):
-        return self.remote_host, self.remote_port
-
-    def dump_addr(self):
-        return struct.pack('>BBBBH', *(map(int, self.remote_host.split('.'))), self.remote_port)
-
-    def load_addr(self, data):
-        port = struct.unpack('>H', data[4:6])
-        ip_map = struct.unpack('>BBBB', data[0:4])
-        ip = '.'.join(map, ip_map)
-        return ip, port
+    def __init__(self, local_host=None, local_port=None, remote_host=None, remote_port=None, transport=None):
+        if local_host: self.__set_local_host(local_host)
+        if local_port: self.__set_local_port(local_port)
+        if remote_host: self.__set_remote_host(remote_host)
+        if remote_port: self.__set_remote_port(remote_port)
+        if transport: self.__set_transport(transport)
+        self.__set_last_response()
+        self.__set_last_request()
 
     def __eq__(self, connection):
-        if self.remote_host != connection.remote_host:
+        if self.__remote_host != connection.__remote_host:
             return False
-        if self.remote_port != connection.remote_port:
+        if self.__remote_port != connection.__remote_port:
             return False
         return True
 
-    def set_listener(self, local_port, transport, protocol):
-        self.set_protocol(protocol)
-        self.set_transport(transport)
-        self.set_local_port(local_port)
+    def is_alive(self):
+        if self.transport.is_closing():
+            return False
+        return True
 
-    def set_remote_host(self, remote_host):
-        self.remote_host = remote_host
+    def last_request_is_time_out(self):
+        return time() - self.__last_request > settings.peer_timeout_seconds
 
-    def get_remote_host(self):
-        return self.remote_host
+    def last_response_is_over_ping_time(self):
+        return time() - self.__last_response > settings.peer_ping_time_seconds
 
-    def set_remote_port(self, remote_port):
-        self.remote_port = remote_port
+    def __set_last_response(self):
+        self.__last_response = time()
 
-    def get_remote_port(self):
-        return self.remote_port
+    def __set_last_request(self):
+        self.__last_request = time()
 
-    def set_request(self, request):
-        self.request = request
+    def __set_transport(self, transport):
+        self.transport = transport
+
+    def __set_protocol(self, protocol):
+        self.__protocol = protocol
+
+    def __set_local_host(self, local_host):
+        self.local_host = local_host
+
+    def __set_local_port(self, local_port):
+        self.local_port = local_port
+
+    def __set_remote_host(self, remote_host):
+        self.__remote_host = remote_host
+
+    def __set_remote_port(self, remote_port):
+        self.__remote_port = remote_port
+
+    def __set_request(self, request):
+        self.__request = request
 
     def get_request(self):
-        return self.request
+        return self.__request
 
-    def get_fingerprint(self):
-        return self.fingerprint
-
-    def set_remote_addr(self, addr):
-        self.set_remote_host(addr[0])
-        self.set_remote_port(addr[1])
-
-    def close_transport(self):
-        self.transport.close()
-
-    def datagram_received(self, request, remote_addr, transport):
-        self.set_remote_addr(remote_addr)
-        self.set_request(request)
-        self.set_transport(transport)
+    def update_request(self, connection):
+        self.__request = connection.get_request()
 
     def set_fingerprint(self, fingerprint):
         self.fingerprint = fingerprint
 
+    def get_fingerprint(self):
+        return self.fingerprint
+
+    def dump_addr(self):
+        return struct.pack('>BBBBH', *(map(int, self.__remote_host.split('.'))), self.__remote_port)
+
+    def datagram_received(self, request, remote_addr, transport):
+        self.set_remote_addr(remote_addr)
+        self.__set_request(request)
+        self.__set_transport(transport)
+
+    def set_remote_addr(self, addr):
+        self.__set_remote_host(addr[0])
+        self.__set_remote_port(addr[1])
+
     def send(self, response):
-        logger.info('Connection send response')
-        print(response, (self.remote_host, self.remote_port))
-        self.transport.sendto(response, (self.remote_host, self.remote_port))
+        logger.info('')
+        self.__set_last_response()
+        self.transport.sendto(encode(response), (self.__remote_host, self.__remote_port))
+
+    def shutdown(self):
+        if self.transport.is_closing():
+            return
+        self.transport.close()
+
+
+class NetPool(Singleton):
+    def __init__(self):
+        self.__group = []
+
+    def __clean_groups(self):
+        alive_group_tmp = []
+        for connection in self.__group:
+            if connection.last_request_is_time_out():
+                connection.shutdown()
+                continue
+            self.__mark_connection_type(connection)
+            alive_group_tmp.append(connection)
+        self.__group = alive_group_tmp
+
+    def __mark_connection_type(self, connection):
+        if not hasattr(connection, 'type'):
+            connection.type = 'client'
+
+    def __put_connection_in_group(self, new_connection):
+        if not new_connection in self.__group:
+            self.__group.append(new_connection)
+            return
+        connection_index = self.__group.index(new_connection)
+        save_connection = self.__group[connection_index]
+        save_connection.update_request(new_connection)
+
+    def get_all_connections(self):
+        self.__clean_groups()
+        return self.__group
+
+    def get_random_client_connection(self):
+        group = self.__filter_connection_by_type('client')
+        return random.choice(group) if group else None
+
+    def get_server_connections(self):
+        return self.__filter_connection_by_type('server')
+
+    def __filter_connection_by_type(self, my_type):
+        self.__clean_groups()
+        group = []
+        for connection in self.__group:
+            if not hasattr(connection, 'type'):
+                continue
+            if connection.type == my_type:
+                group.add(connection)
+        return group

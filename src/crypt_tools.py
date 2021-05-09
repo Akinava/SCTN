@@ -13,7 +13,7 @@ import settings
 from settings import logger
 
 
-class Tools:
+class Tools(Singleton):
     def __init__(self):
         logger.info('crypt_tools init')
         self.init_ecdsa()

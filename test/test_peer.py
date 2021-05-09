@@ -18,6 +18,8 @@ from settings import logger
 
 
 class TestPeerHandler():
+    msg_test_peer_hello = 'test peer hello'
+
     protocol = {
         'request': 'response',
         'test_peer_hello': 'test_peer_time',
@@ -25,13 +27,24 @@ class TestPeerHandler():
     }
 
     def init(self):
+        logger.info('')
         self.do_test_peer_hello()
 
     def define_test_peer_hello(self, connection):
-        if connection.get_request() == 'test peer hello':
+        logger.info('')
+        if connection.get_request() == msg_test_peer_hello:
             return True
 
+    def do_test_peer_hello(self):
+        connection = self.net_pool.get_random_client_connection()
+        connection.send(msg_test_peer_hello)
+
+    def define_test_peer_time(self, connection):
+        logger.info('')
+
+
     def do_test_peer_time(self, connection):
+        logger.info('')
         return datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
 
 

@@ -1,9 +1,0 @@
-{
-  "shadow_file": "shadow",
-  "peers_file": "peers.json",
-  "default_port": 2002,
-  "peer_timeout_seconds": 60,
-  "peer_ping_time_seconds": 5,
-  "peer_connections": 10,
-  "local_host": "0.0.0.0"
-}

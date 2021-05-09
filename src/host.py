@@ -7,70 +7,70 @@ __version__ = [0, 0]
 
 
 import asyncio
+import signal
 import settings
 from settings import logger
-from connection import Connection, NetPool
+from connection import NetPool, Connection
+import utilit
 
 
-class Host:
+class UDPHost:
     def __init__(self, handler):
-        logger.info('Host init')
+        logger.info('')
         self.handler = handler
-        self.connections = []
-        self.listener = None
+        self.net_pool = NetPool()
         self.local_host = settings.local_host
+        self.__set_posix_handler()
+        self.alive = True
 
-    def connect(self, host, port):
-        logger.info('host connect to {} {}'.format(host, port))
+    def __set_posix_handler(self):
+        signal.signal(signal.SIGUSR1, self.__handle_posix_signal)
+        signal.signal(signal.SIGTERM, self.__handle_posix_signal)
 
-    async def create_listener(self, port):
-        logger.info('Host create_listener')
+    def __handle_posix_signal(self, signum, frame):
+        if signum == signal.SIGTERM:
+            self.__exit()
+        if signum == signal.SIGUSR1:
+            self.__config_reload()
+
+    async def create_endpoint(self, remote_host, remote_port, local_port=None):
+        local_addr = None
+        if not local_port is None:
+            local_addr = (self.local_host, local_port)
         loop = asyncio.get_running_loop()
-        logger.info('host create_listener on port {}'.format(port))
-
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: self.handler(),
-            local_addr=(self.local_host, port))
-        self.listener = Connection()
-        self.listener.set_listener(
-            local_port=port,
-            transport=transport,
-            protocol=protocol)
-
-    async def send(self, connection, message, local_port=None):
-        logger.info('Host send')
-
-        loop = asyncio.get_running_loop()
-        on_con_lost = loop.create_future()
-        local_addr = (self.local_host, local_port) if local_port else None
-
-        transport, protocol = await loop.create_datagram_endpoint(
-            lambda: self.handler(message, on_con_lost),
-            remote_addr=connection.get_remote_addr(),
-            local_addr=local_addr)
-
-        connection.set_transport(transport)
-        connection.set_protocol(protocol)
-        connettion.set_net(self.connections)
-        self.connections.append(connection)
-
-        try:
-            await on_con_lost
-        finally:
-            connection.close_transport()
+            local_addr=local_addr,
+            remote_addr=(remote_host, remote_port))
+        connection = Connection(
+            remote_host=remote_host,
+            remote_port=remote_port,
+            transport=transport
+        )
+        return connection
 
     async def serve_forever(self):
-        logger.info('Host serve_forever')
-        while self.connections:
-            self.ping_connections()
+        logger.info('')
+        while self.alive:
+            self.__ping_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
 
-    def ping_connections(self):
-        for connection in self.connections:
-            if connection.is_alive():
-                self.send(connection, self.handler.do_swarm_ping())
-            else:
-                connection.shutdown()
+    def __ping_connections(self):
+        for connection in self.net_pool.get_all_connections():
+            if connection.last_response_is_over_ping_time():
+                self.handler.do_swarm_ping(connection)
+
+    def __shutdown_connections(self):
+        self.alive = False
+        self.net_pool.clean()
+
+    def __config_reload(self):
+        logger.debug('')
+        utilit.import_config()
+
+    def __exit(self):
+        logger.info('')
+        self.__shutdown_connections()
 
     def __del__(self):
         logger.info('')

@@ -1,19 +1,14 @@
 # rebuild and run project in local containers
-docker-compose -f ./docker/compose-test/docker-compose.yml up --build
-
-# start container interactive
-docker start -i fbb73216544e
+docker-compose -f ./docker/docker-compose.yml up --build
 
 # build image
-docker build -f docker/images/server/Dockerfile -t img_server:v0 .
+docker build -f docker/Dockerfile -t sctn:v0 .
 
-# build and run container
-docker run -it swarm-server-tn:v0
+# build and run container interactive
+docker run -it sctn:v0
+
+# start container interactive
+docker start -i sctn_0
 
 # run server local
-python3 src/server.py -c /Users/akinava/Projects/sctn/docker/images/server/config.json -s /Users/akinava/Projects/sctn/docker/images/server/shadow
-
-# run client local
-python3 test/test_peer.py -c /Users/akinava/Projects/sctn/docker/images/client/config.json -s /Users/akinava/Projects/sctn/docker/images/client/shadow -p /Users/akinava/Projects/sctn/docker/images/client/peers.json
-
-
+python3 test/test_peer.py -c docker/config.json -p docker/peers.json
