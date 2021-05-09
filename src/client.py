@@ -22,6 +22,7 @@ class ClientHandler(protocol.UDPProtocol):
         'request': 'response',
         'swarm_ping': None,
         'swarm_peer_response': 'handle_peer',
+        'swarm_peer_request': 'swarm_peer_response', # TODO
     }
 
     def do_swarm_peer_request(self, connection):
