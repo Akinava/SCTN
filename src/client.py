@@ -19,7 +19,6 @@ class ClientHandler(protocol.UDPProtocol):
     disconnect_flag = b'\xff'
     keep_connection_flag = b'\x00'
     addr_info_len = 6
-    port_info_len = 4
 
     protocol = {
         'request': 'response',
@@ -30,8 +29,7 @@ class ClientHandler(protocol.UDPProtocol):
 
     def do_swarm_peer_request(self, connection):
         logger.info('')
-        default_port = struct.pack('>H', settings.default_port)
-        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint() + default_port
+        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
 
     def define_swarm_peer_response(self, connection):
         if connection.get_fingerprint() != self.__unpack_swarm_peer(connection)['my_figerprint']:
@@ -48,7 +46,6 @@ class ClientHandler(protocol.UDPProtocol):
             connection.shutdown()
         neighbour_fingerprint = self.__unpack_swarm_peer(connection)['neighbour_fingerprint']
         neighbour_ip = self.__unpack_swarm_peer(connection)['neighbour_ip']
-        default_port = self.__unpack_swarm_peer(connection)['default_port']
         neighbour_port = self.__unpack_swarm_peer(connection)['neighbour_port']
 
         # TODO
@@ -60,22 +57,19 @@ class ClientHandler(protocol.UDPProtocol):
         response = connection.get_request()
         my_figerprint, rest = unpack_stream(response, self.crypt_tools.get_fingerprint_len())
         neighbour_fingerprint, rest = unpack_stream(rest, self.crypt_tools.get_fingerprint_len())
-        addr, rest = unpack_stream(rest, self.addr_info_len)
-        default_port, connect_flag = unpack_stream(rest, self.port_info_len)
+        addr, connect_flag = unpack_stream(rest, self.addr_info_len)
         ip, port = connection.loads_addr(addr)
         return {'my_figerprint': my_figerprint,
                 'neighbour_fingerprint': neighbour_fingerprint,
                 'neighbour_ip': ip,
                 'neighbour_port': port,
-                'default_port': default_port,
                 'connect_flag': connect_flag}
 
     def __check_swarm_peer_response_len(self, connection):
         request_len = len(connection.get_request())
         required_len = self.crypt_tools.get_fingerprint_len() * 2 + \
             len(self.keep_connection_flag) + \
-            len(self.addr_info_len) + \
-            len(self.port_info_len)
+            len(self.addr_info_len)
         return request_len == required_len
 
     def __get_connect_flag(self, connection):
