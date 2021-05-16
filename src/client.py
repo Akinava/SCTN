@@ -41,9 +41,12 @@ class ClientHandler(protocol.UDPProtocol):
         return True
 
     def do_handle_peer(self, connection):
+        # TODO check fingerprint(pub_key) == connection.fingerprint
+        # TODO check pub_key(connection.message) == sign
         connect_flag = self.__get_connect_flag(connection)
         if connect_flag == self.disconnect_flag():
             connection.shutdown()
+
         neighbour_fingerprint = self.__unpack_swarm_peer(connection)['neighbour_fingerprint']
         neighbour_ip = self.__unpack_swarm_peer(connection)['neighbour_ip']
         neighbour_port = self.__unpack_swarm_peer(connection)['neighbour_port']
