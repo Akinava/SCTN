@@ -22,7 +22,6 @@ class Connection:
         if remote_port: self.__set_remote_port(remote_port)
         if transport: self.__set_transport(transport)
         self.__set_last_response()
-        self.__set_last_request()
 
     def __eq__(self, connection):
         if self.__remote_host != connection.__remote_host:
@@ -36,7 +35,14 @@ class Connection:
             return False
         return True
 
+    def __last_send_made_over_peer_timeout_but_has_no_request(self):
+        return time() - self.__last_response > settings.peer_timeout_seconds
+
     def last_request_is_time_out(self):
+        if not hasattr(self, '__last_request'):
+            if self.__last_send_made_over_peer_timeout_but_has_no_request():
+                return True
+            return None
         return time() - self.__last_request > settings.peer_timeout_seconds
 
     def last_response_is_over_ping_time(self):
@@ -74,6 +80,7 @@ class Connection:
 
     def update_request(self, connection):
         self.__request = connection.get_request()
+        self.__set_last_request()
 
     def set_fingerprint(self, fingerprint):
         self.fingerprint = fingerprint
@@ -95,8 +102,8 @@ class Connection:
 
     def send(self, response):
         logger.info('')
-        self.__set_last_response()
         self.transport.sendto(encode(response), (self.__remote_host, self.__remote_port))
+        self.__set_last_response()
 
     def shutdown(self):
         if self.transport.is_closing():
@@ -111,7 +118,7 @@ class NetPool(Singleton):
     def __clean_groups(self):
         alive_group_tmp = []
         for connection in self.__group:
-            if connection.last_request_is_time_out():
+            if connection.last_request_is_time_out() is True:
                 connection.shutdown()
                 continue
             self.__mark_connection_type(connection)
@@ -122,13 +129,13 @@ class NetPool(Singleton):
         if not hasattr(connection, 'type'):
             connection.type = 'client'
 
-    def __put_connection_in_group(self, new_connection):
+    def save_connection(self, new_connection):
         if not new_connection in self.__group:
             self.__group.append(new_connection)
             return
         connection_index = self.__group.index(new_connection)
-        save_connection = self.__group[connection_index]
-        save_connection.update_request(new_connection)
+        old_connection = self.__group[connection_index]
+        old_connection.update_request(new_connection)
 
     def get_all_connections(self):
         self.__clean_groups()
@@ -140,6 +147,10 @@ class NetPool(Singleton):
 
     def get_server_connections(self):
         return self.__filter_connection_by_type('server')
+
+    def has_client_connection(self):
+        group = self.__filter_connection_by_type('client')
+        return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
         self.__clean_groups()

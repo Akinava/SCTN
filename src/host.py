@@ -45,6 +45,7 @@ class UDPHost:
             lambda: self.handler(),
             local_addr=local_addr,
             remote_addr=remote_addr)
+
         connection = Connection(
             local_host=local_host,
             local_port=local_port,
@@ -52,6 +53,7 @@ class UDPHost:
             remote_port=remote_port,
             transport=transport
         )
+
         return connection
 
     async def serve_forever(self):

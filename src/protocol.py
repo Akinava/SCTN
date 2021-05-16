@@ -16,7 +16,7 @@ from utilit import encode
 class UDPProtocol:
     msg_ping = b''
 
-    def __init__(self, message=None, on_con_lost=None):
+    def __init__(self, message=None):
         logger.info('')
         self.net_pool = NetPool()
         self.crypt_tools = CryptTools()
@@ -38,6 +38,11 @@ class UDPProtocol:
         connection = Connection()
         connection.set_remote_addr(remote_addr)
         self.net_pool.disconnect(connection)
+
+    def make_connection(self, remote_host, remote_port):
+        connection = Connection(transport=self.transport, remote_host=remote_host, remote_port=remote_port)
+        self.net_pool.save_connection(connection)
+        return connection
 
     def __handle(self, connection):
         logger.info('')

@@ -11,9 +11,15 @@ import json
 from cryptotool import *
 import settings
 from settings import logger
+from utilit import unpack_stream, Singleton
 
 
 class Tools(Singleton):
+    priv_key_length = 32
+    pub_key_length = 64
+    fingerprint_length = 32
+    sign_length = 64
+
     def __init__(self):
         logger.info('crypt_tools init')
         self.init_ecdsa()
@@ -78,16 +84,18 @@ class Tools(Singleton):
     def get_fingerprint(self):
         logger.info('crypt_tools get_fingerprint')
         if not hasattr(self, 'fingerprint'):
-            self.make_fingerprint()
+            self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
         return self.fingerprint
 
-    def get_fingerprint_len(self):
-        return len(self.get_fingerprint())
-
-    def make_fingerprint(self):
-        open_key = self.ecdsa.get_pub_key()
-        self.fingerprint = sha256(open_key)
+    def make_fingerprint(self, open_key):
+        return sha256(open_key)
 
     def sign_message(self, message):
         print('Tools, sign_message: message|sign|pub_key', len(message), len(self.ecdsa.sign(message)), len(self.ecdsa.get_pub_key()))
         return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
+
+    def check_signature(self, message):
+        data, rest = unpack_stream(message, self.pub_key_length+self.sign_length)
+        sign, pub_key = unpack_stream(rest, self.sign_length)
+        ecdsa_pub = ECDSA(pub_key=pub_key)
+        return ecdsa_pub.check_signature(message=data, signature=sign)

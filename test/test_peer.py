@@ -26,17 +26,16 @@ class TestPeerHandler():
         'test_peer_time': None,
     }
 
-    def init(self):
+    def init(self, connection):
         logger.info('')
-        self.do_test_peer_hello()
+        self.do_test_peer_hello(connection)
 
     def define_test_peer_hello(self, connection):
         logger.info('')
         if connection.get_request() == msg_test_peer_hello:
             return True
 
-    def do_test_peer_hello(self):
-        connection = self.net_pool.get_random_client_connection()
+    def do_test_peer_hello(self, connection):
         connection.send(msg_test_peer_hello)
 
     def define_test_peer_time(self, connection):
