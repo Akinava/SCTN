@@ -10,10 +10,14 @@ import json
 import sys
 import random
 import struct
+from datetime import datetime, timedelta
 import logging
 import settings
 import get_args
 from cryptotool import *
+
+
+DATA_FORMAT = '%Y.%m.%d %H:%M:%S'
 
 
 class Singleton(object):
@@ -21,6 +25,97 @@ class Singleton(object):
         if not hasattr(cls, '_instance'):
             cls._instance = super(Singleton, cls).__new__(cls)
         return cls._instance
+
+
+class Peers(Singleton):
+    def __init__(self):
+        self.__load()
+
+    def get_random_server_from_file(self):
+        servers = self.__filter_peers_by_type('server')
+        if not servers:
+            return None
+        return random.choice(servers)
+
+    def save_server_last_response_time(self, connection):
+        server = self.__find_peer({
+            'type': 'server',
+            'fingerprint': connection.get_fingerprint(),
+            'host': connection.get_remote_host(),
+            'port': connection.get_remote_port()})
+        if isinstance(server, dict):
+            server['last_response'] = now()
+            self.__save()
+
+    def __find_peer(self, filter_kwargs):
+        for peer in self.__peers:
+            for key, val in filter_kwargs.items():
+                if peer.get(key) != val:
+                    continue
+            return peer
+
+    def get_servers_list(self):
+        servers = self.__filter_peers_by_type('server')
+        if not servers:
+            return None
+        servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
+        return servers
+
+    def __filter_peers_by_last_response_field(self, servers, days_delta):
+        filtered_list = []
+        for peer in servers:
+            datatime_string = peer.get('last_response')
+            if datatime_string is None:
+                continue
+            if str_to_datetime(datatime_string) + timedelta(days=days_delta) < now():
+                continue
+            filtered_list.append(peer)
+        return filtered_list
+
+    def __load(self):
+        peers = self.__read_file()
+        self.__peers = self.__unpack_peers_fingerprint(peers)
+
+    def __save(self):
+        peers = self.__pack_peers_fingerprint(self.__peers)
+        self.__save_file(peers)
+
+    def __read_file(self):
+        with open(settings.peers_file, 'r') as f:
+            peers_list = json.loads(f.read())
+        return peers_list
+
+    def __save_file(self, data):
+        with open(settings.peers_file, 'w') as f:
+            f.write(json.dumps(data))
+
+    def __unpack_peers_fingerprint(self, peers_list):
+        for peer_index in range(len(peers_list)):
+            peer = peers_list[peer_index]
+            peer['fingerprint'] = B58().unpack(peer['fingerprint'])
+        return peers_list
+
+    def __pack_peers_fingerprint(self, peers_list):
+        for peer_index in range(len(peers_list)):
+            peer = peers_list[peer_index]
+            peer['fingerprint'] = B58().pack(peer['fingerprint'])
+        return peers_list
+
+    def __filter_peers_by_type(self, filter):
+        filtered_peers = []
+        for peer in self.__peers:
+            if peer['type'] != filter:
+                continue
+            filtered_peers.append(peer)
+        return filtered_peers
+
+
+def now():
+    return datetime.now().strftime(DATA_FORMAT)
+
+
+def str_to_datetime(datatime_string):
+    return datetime.strptime(datatime_string, DATA_FORMAT)
 
 
 def setup_logger():
@@ -60,35 +155,6 @@ def setup_settings():
     setup_logger()
     import_options()
     import_config()
-
-
-def get_random_server_from_file():
-    peers = read_peers_from_file()
-    servers = filter_peers(peers, 'server')
-    if not servers:
-        return None
-    return random.choice(servers)
-
-
-def filter_peers(peers, filter):
-    filtered_peers = []
-    for peer in peers:
-        if peer['type'] != filter:
-            continue
-        filtered_peers.append(peer)
-    return filtered_peers
-
-
-def read_peers_from_file():
-    with open(settings.peers_file, 'r') as f:
-        peers_list = json.loads(f.read())
-        return unpack_peers_fingerprint(peers_list)
-
-def unpack_peers_fingerprint(peers_list):
-    for peer_index in range(len(peers_list)):
-        peer = peers_list[peer_index]
-        peer['fingerprint'] = B58().unpack(peer['fingerprint'])
-    return peers_list
 
 
 def pack_host(host):

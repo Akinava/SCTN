@@ -11,8 +11,7 @@ from settings import logger
 import settings
 import host
 import protocol
-from connection import Connection
-from utilit import unpack_stream, get_random_server_from_file
+from utilit import unpack_stream, save_last_response_server, Peers
 
 
 class ClientHandler(protocol.UDPProtocol):
@@ -33,11 +32,11 @@ class ClientHandler(protocol.UDPProtocol):
         logger.info('')
         return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
 
-    def __do_sstn_list_request(connection):
+    def __do_sstn_list_request(self, connection):
         connection.send(self.crypt_tools.get_fingerprint() + connection.get_fingerprint())
 
     def define_sstn_list_request(self, connection):
-        if self.crypt_tools.get_fingerprint() != self.__unpack_sstn_list_request()['my_fingerprint']:
+        if self.crypt_tools.get_fingerprint() != self.__unpack_sstn_list_request(connection)['my_fingerprint']:
             return False
         if self.__check_sstn_list_request_len(connection):
             return False
@@ -47,8 +46,20 @@ class ClientHandler(protocol.UDPProtocol):
         return len(connection.get_request()) == self.crypt_tools.fingerprint_length * 2
 
     def do_sstn_list(self, connection):
+        self.__save_fingerprint_from_sstn_list_request(connection)
+        message = self.__make_sstn_list()
+        # sign
+        # sent
         # TODO
         pass
+
+    def __make_sstn_list(self):
+        servers = Peers().get_servers_list()
+        # TODO pack the list and return
+
+    def __save_fingerprint_from_sstn_list_request(self, connection):
+        neighbour_fingerprint = self.__unpack_sstn_list_request(connection)['neighbour_fingerprint']
+        connection.set_fingerprint(neighbour_fingerprint)
 
     def define_sstn_list(self, connection):
         # TODO
@@ -80,12 +91,11 @@ class ClientHandler(protocol.UDPProtocol):
     def do_handle_peer(self, connection):
         connect_flag = self.__get_connect_flag(connection)
         if connect_flag == self.disconnect_flag():
+            Peers().save_server_last_response_time(connection)
             connection.shutdown()
-
         neighbour_fingerprint = self.__unpack_swarm_peer(connection)['neighbour_fingerprint']
         neighbour_ip = self.__unpack_swarm_peer(connection)['neighbour_ip']
         neighbour_port = self.__unpack_swarm_peer(connection)['neighbour_port']
-
         self.__try_connect_to_neighbour(neighbour_fingerprint, neighbour_ip, neighbour_port)
         self.__init_user_client()
 
@@ -99,7 +109,6 @@ class ClientHandler(protocol.UDPProtocol):
             if not self.__check_connection_has_received(connection):
                 continue
             self.init(connection)
-
         self.__set_swarm_connection_status()
 
     def __check_connection_has_received(self, connection):
@@ -218,7 +227,7 @@ class Client(host.UDPHost):
             return
 
     async def __connect_via_server(self):
-        server_data = get_random_server_from_file()
+        server_data = Peers().get_random_server_from_file()
         if not server_data is None:
             await self.__do_swarm_peer_request_to_server(server_data)
 

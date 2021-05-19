@@ -69,8 +69,14 @@ class Connection:
     def __set_remote_host(self, remote_host):
         self.__remote_host = remote_host
 
+    def get_remote_host(self):
+        return self.__remote_host
+
     def __set_remote_port(self, remote_port):
         self.__remote_port = remote_port
+
+    def get_remote_port(self):
+        return self.__remote_port
 
     def __set_request(self, request):
         self.__request = request
