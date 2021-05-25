@@ -59,7 +59,11 @@ class Peers(Singleton):
         if not servers:
             return None
         servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
-        return servers
+        return servers[settings.peer_connections]
+
+    def put_servers_list(self, servers_list):
+        pass
+        # TODO
 
     def __filter_peers_by_last_response_field(self, servers, days_delta):
         filtered_list = []

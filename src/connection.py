@@ -97,6 +97,13 @@ class Connection:
     def dump_addr(self):
         return struct.pack('>BBBBH', *(map(int, self.__remote_host.split('.'))), self.__remote_port)
 
+    @classmethod
+    def loads_addr(self, addr):
+        host_tuple = struct.unpack('>BBBB', addr[:4])
+        host = '.'.join(map(str, host_tuple)
+        port = struct.unpack('>H', addr[4:])[0]
+        return host, port
+
     def datagram_received(self, request, remote_addr, transport):
         self.set_remote_addr(remote_addr)
         self.__set_request(request)
