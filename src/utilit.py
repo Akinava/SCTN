@@ -62,8 +62,16 @@ class Peers(Singleton):
         return servers[settings.peer_connections]
 
     def put_servers_list(self, servers_list):
-        pass
-        # TODO
+        for server_data in servers_list:
+            server = self.__find_peer({
+                'protocol': server_data['protocol'],
+                'type': 'server',
+                'fingerprint': server_data['fingerprint'],
+                'host': server_data['host'],
+                'port': server_data['port']})
+            if server is None:
+                self.__peers.append(server_data)
+        self.__save()
 
     def __filter_peers_by_last_response_field(self, servers, days_delta):
         filtered_list = []

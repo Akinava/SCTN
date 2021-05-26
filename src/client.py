@@ -82,7 +82,7 @@ class ClientHandler(protocol.UDPProtocol):
         return True
 
     def do_save_sstn_list(self, connection):
-        servers = __unpack_sstn_list(connection)
+        servers = self.__unpack_sstn_list(connection)
         Peers().put_servers_list(servers)
 
     def __unpack_sstn_list_request(self, connection):
