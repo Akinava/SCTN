@@ -11,8 +11,8 @@ from settings import logger
 import settings
 import host
 import protocol
-from connection import  Connection
-from utilit import unpack_stream, save_last_response_server, Peers
+from connection import  Connection, Peers
+from utilit import unpack_stream
 
 
 class ClientHandler(protocol.UDPProtocol):
@@ -64,7 +64,7 @@ class ClientHandler(protocol.UDPProtocol):
             remote_host=server['host'],
             remote_port=server['port'])
             message += server['fingerprint']
-            message += self.server_protocol_map[server['protocol']
+            message += self.server_protocol_map[server['protocol']]
             message += connection.dump_addr()
         return message
 
@@ -138,12 +138,12 @@ class ClientHandler(protocol.UDPProtocol):
             server_addr, server_protocol = unpack_stream(rest, self.addr_info_len)
             server_ip, server_port = Connection.loads_addr(server_addr)
             server_protocol = {v: k for k, v in self.server_protocol_map.items()}[server_protocol]
-            server_data.append(
+            server_data.append({
                 'protocol': server_protocol,
                 'type': 'server',
                 'fingerprint': server_fingerprint,
                 'host': server_ip,
-                'port': server_port)
+                'port': server_port})
         return server_data
 
     def __check_sstn_list_len(self, connection):
@@ -176,7 +176,7 @@ class ClientHandler(protocol.UDPProtocol):
     def __get_connect_flag(self, connection):
         return self.__unpack_swarm_peer(connection)['connect_flag']
 
-    def __check_connect_flag(self, connection)
+    def __check_connect_flag(self, connection):
         if self.__get_connect_flag(connection) in [self.disconnect_flag, self.keep_connection_flag]:
             return True
         return False
@@ -220,7 +220,7 @@ class ClientHandler(protocol.UDPProtocol):
                 'neighbour_port': port,
                 'connect_flag': connect_flag,
                 'sign': sign,
-                'responding_pub_key': neighbour_pub_key
+                'responding_pub_key': neighbour_pub_key}
 
 
 class Client(host.UDPHost):
@@ -248,7 +248,7 @@ class Client(host.UDPHost):
         for func_name in dir(object_at_user_handler):
             if hasattr(self.handler, func_name):
                 continue
-            func = getattr(handler, func_name)
+            func = getattr(object_at_user_handler, func_name)
             setattr(self.handler, func_name, func)
 
     async def __serve_swarm(self):
@@ -271,7 +271,7 @@ class Client(host.UDPHost):
         else:
             await self.__connect_via_server()
 
-    async def __connect_via_client(self)
+    async def __connect_via_client(self):
         connection = self.net_pool.get_random_client_connection()
         if not connection is None:
             self.handler.do_swarm_peer_request(connection)
