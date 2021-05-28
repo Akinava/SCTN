@@ -253,7 +253,7 @@ class Client(host.UDPHost):
 
     async def __serve_swarm(self):
         logger.info('')
-        while self.alive:
+        while self.listener.is_alive():
             if not self.__has_enough_connections() and not self.__has_server_connection():
                 await self.__find_new_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)

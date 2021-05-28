@@ -154,6 +154,9 @@ class NetPool(Singleton):
         self.__clean_groups()
         return self.__group
 
+    def get_all_client_connections(self):
+        return self.__filter_connection_by_type('client')
+
     def get_random_client_connection(self):
         group = self.__filter_connection_by_type('client')
         return random.choice(group) if group else None
