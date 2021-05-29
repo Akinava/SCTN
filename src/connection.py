@@ -9,6 +9,8 @@ __version__ = [0, 0]
 import struct
 from time import time
 import random
+import json
+from cryptotool import B58
 from utilit import Singleton, encode
 import settings
 from settings import logger
@@ -56,6 +58,9 @@ class Connection:
 
     def __set_transport(self, transport):
         self.transport = transport
+
+    def set_type(self, connection_type):
+        self.type = connection_type
 
     def __set_protocol(self, protocol):
         self.__protocol = protocol
@@ -138,6 +143,20 @@ class NetPool(Singleton):
             alive_group_tmp.append(connection)
         self.__group = alive_group_tmp
 
+    def swarm_status_stable(self):
+        if hasattr(self, '__swarm_stable'):
+            return True
+        return False
+
+    def __set_swarm_connection_status(self):
+        if hasattr(self, '__swarm_stable'):
+            return
+        if self.has_enough_connections():
+            self.__swarm_stable = True
+
+    def has_enough_connections(self):
+        return len(self.get_all_client_connections()) >= settings.peer_connections
+
     def __mark_connection_type(self, connection):
         if not hasattr(connection, 'type'):
             connection.type = 'client'
@@ -149,6 +168,7 @@ class NetPool(Singleton):
         connection_index = self.__group.index(new_connection)
         old_connection = self.__group[connection_index]
         old_connection.update_request(new_connection)
+        self.__set_swarm_connection_status()
 
     def get_all_connections(self):
         self.__clean_groups()

@@ -159,17 +159,6 @@ class ClientHandler(protocol.UDPProtocol):
     def __check_connection_has_received(self, connection):
         return not connection.last_request_is_time_out() is None
 
-    def __set_swarm_connection_status(self):
-        if hasattr(self, '__swarm_stable'):
-            return
-        if self.__has_enough_connections():
-            self.__swarm_stable = True
-
-    def swarm_status_stable(self):
-        if hasattr(self, '__swarm_stable'):
-            return True
-        return False
-
     def __check_my_fingerprint(self, connection):
         return self.__unpack_my_fingerprint(connection) == self.crypt_tools.my_figerprint()
 
@@ -254,19 +243,19 @@ class Client(host.UDPHost):
     async def __serve_swarm(self):
         logger.info('')
         while self.listener.is_alive():
-            if not self.__has_enough_connections() and not self.__has_server_connection():
+            if not self.__has_enough_client_connections() and not self.__has_server_connection():
                 await self.__find_new_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
 
-    def __has_enough_connections(self):
+    def __has_enough_client_connections(self):
         logger.info('')
-        return len(self.net_pool.get_all_client_connections()) >= settings.peer_connections
+        return self.net_pool.has_enough_connections()
 
     def __has_server_connection(self):
         return len(self.net_pool.get_server_connections()) > 0
 
     async def __find_new_connections(self):
-        if self.handler.swarm_status_stable() and self.net_pool.has_client_connection():
+        if self.net_pool.swarm_status_stable() and self.net_pool.has_client_connection():
             await self.__connect_via_client()
         else:
             await self.__connect_via_server()
