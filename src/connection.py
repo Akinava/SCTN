@@ -10,7 +10,7 @@ import struct
 from time import time
 import random
 import json
-from cryptotool import B58
+from crypt_tools import Tools as CryptTools
 from utilit import Singleton, encode
 import settings
 from settings import logger
@@ -278,17 +278,11 @@ class Peers(Singleton):
         with open(settings.peers_file, 'w') as f:
             f.write(json.dumps(data))
 
-    def __unpack_peers_fingerprint(self, peers_list):
-        for peer_index in range(len(peers_list)):
-            peer = peers_list[peer_index]
-            peer['fingerprint'] = B58().unpack(peer['fingerprint'])
-        return peers_list
+    def __unpack_peers_fingerprint(self, peers):
+        return CryptTools().unpack_peers_fingerprint(peers)
 
-    def __pack_peers_fingerprint(self, peers_list):
-        for peer_index in range(len(peers_list)):
-            peer = peers_list[peer_index]
-            peer['fingerprint'] = B58().pack(peer['fingerprint'])
-        return peers_list
+    def __pack_peers_fingerprint(self, peers):
+        return CryptTools().pack_peers_fingerprint(peers)
 
     def __filter_peers_by_type(self, filter):
         filtered_peers = []

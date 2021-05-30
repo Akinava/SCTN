@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import logging
 import settings
 import get_args
-from cryptotool import *
 
 
 DATA_FORMAT = '%Y.%m.%d %H:%M:%S'

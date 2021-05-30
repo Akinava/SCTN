@@ -99,3 +99,15 @@ class Tools(Singleton):
         sign, pub_key = unpack_stream(rest, self.sign_length)
         ecdsa_pub = ECDSA(pub_key=pub_key)
         return ecdsa_pub.check_signature(message=data, signature=sign)
+
+    def unpack_peers_fingerprint(self, peers_list):
+        for peer_index in range(len(peers_list)):
+            peer = peers_list[peer_index]
+            peer['fingerprint'] = B58().unpack(peer['fingerprint'])
+        return peers_list
+
+    def pack_peers_fingerprint(self, peers_list):
+        for peer_index in range(len(peers_list)):
+            peer = peers_list[peer_index]
+            peer['fingerprint'] = B58().pack(peer['fingerprint'])
+        return peers_list
