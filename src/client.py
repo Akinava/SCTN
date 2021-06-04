@@ -32,7 +32,7 @@ class ClientHandler(protocol.UDPProtocol):
 
     def do_swarm_peer_request(self, connection):
         logger.info('')
-        return connection.get_fingerprint() + self.crypt_tools.get_fingerprint()
+        connection.send(connection.get_fingerprint() + self.crypt_tools.get_fingerprint())
 
     def __do_sstn_list_request(self, connection):
         connection.send(self.crypt_tools.get_fingerprint() + connection.get_fingerprint())
@@ -45,7 +45,8 @@ class ClientHandler(protocol.UDPProtocol):
         return True
 
     def __check_sstn_list_request_len(self, connection):
-        return len(connection.get_request()) == self.crypt_tools.fingerprint_length * 2
+        control_length = len(connection.get_request()) - self.crypt_tools.fingerprint_length
+        return control_length % self.__get_sstn_pack_data_length()
 
     def do_sstn_list(self, connection):
         self.__save_fingerprint_from_sstn_list_request(connection)
@@ -68,6 +69,9 @@ class ClientHandler(protocol.UDPProtocol):
             message += connection.dump_addr()
         return message
 
+    def __get_sstn_pack_data_length(self):
+        return addr_info_len + self.crypt_tools.fingerprint_length + __get_server_protocol_map_length()
+
     def __save_fingerprint_from_sstn_list_request(self, connection):
         neighbour_fingerprint = self.__unpack_sstn_list_request(connection)['neighbour_fingerprint']
         connection.set_fingerprint(neighbour_fingerprint)
@@ -79,6 +83,7 @@ class ClientHandler(protocol.UDPProtocol):
             return False
         if self.__check_message_sign(connection.get_request()) is False:
             return False
+        print('define_sstn_list', self.__check_my_fingerprint(connection), self.__check_sstn_list_len(connection), self.__check_message_sign(connection.get_request()))
         return True
 
     def do_save_sstn_list(self, connection):
@@ -146,6 +151,22 @@ class ClientHandler(protocol.UDPProtocol):
                 'port': server_port})
         return server_data
 
+        def __unpack_swarm_peer(self, connection):
+            message = connection.get_request()
+            my_figerprint, rest = unpack_stream(message, self.crypt_tools.fingerprint_length)
+            neighbour_fingerprint, rest = unpack_stream(rest, self.crypt_tools.fingerprint_length)
+            addr, rest = unpack_stream(rest, self.addr_info_len)
+            connect_flag, rest = unpack_stream(rest, len(self.disconnect_flag))
+            sign, neighbour_pub_key = unpack_stream(rest, self.crypt_tools.sign_length)
+            ip, port = Connection.loads_addr(addr)
+            return {'my_figerprint': my_figerprint,
+                    'neighbour_fingerprint': neighbour_fingerprint,
+                    'neighbour_ip': ip,
+                    'neighbour_port': port,
+                    'connect_flag': connect_flag,
+                    'sign': sign,
+                    'responding_pub_key': neighbour_pub_key}
+
     def __check_sstn_list_len(self, connection):
         message_len = len(connection.get_request())
         message_len -= self.crypt_tools.fingerprint_length
@@ -154,13 +175,16 @@ class ClientHandler(protocol.UDPProtocol):
         return message_len % self.__get_server_pack_data_len() == 0
 
     def __get_server_pack_data_len(self):
-        return self.crypt_tools.fingerprint_length + self.addr_info_len + next(iter(self.server_protocol_map.values()))
+        return self.crypt_tools.fingerprint_length + self.addr_info_len + self.__get_server_protocol_map_length()
+
+    def __get_server_protocol_map_length(self):
+        return len(next(iter(self.server_protocol_map.values())))
 
     def __check_connection_has_received(self, connection):
         return not connection.last_request_is_time_out() is None
 
     def __check_my_fingerprint(self, connection):
-        return self.__unpack_my_fingerprint(connection) == self.crypt_tools.my_figerprint()
+        return self.__unpack_my_fingerprint(connection) == self.crypt_tools.get_fingerprint()
 
     def __get_connect_flag(self, connection):
         return self.__unpack_swarm_peer(connection)['connect_flag']
@@ -191,25 +215,9 @@ class ClientHandler(protocol.UDPProtocol):
             self.crypt_tools.pub_key_length
         return request_len == required_len
 
-    def __unpack_my_fingerprint(connection):
+    def __unpack_my_fingerprint(self, connection):
         message = connection.get_request()
         return message[: self.crypt_tools.fingerprint_length]
-
-    def __unpack_swarm_peer(self, connection):
-        message = connection.get_request()
-        my_figerprint, rest = unpack_stream(message, self.crypt_tools.fingerprint_length)
-        neighbour_fingerprint, rest = unpack_stream(rest, self.crypt_tools.fingerprint_length)
-        addr, rest = unpack_stream(rest, self.addr_info_len)
-        connect_flag, rest = unpack_stream(rest, len(self.disconnect_flag))
-        sign, neighbour_pub_key = unpack_stream(rest, self.crypt_tools.sign_length)
-        ip, port = Connection.loads_addr(addr)
-        return {'my_figerprint': my_figerprint,
-                'neighbour_fingerprint': neighbour_fingerprint,
-                'neighbour_ip': ip,
-                'neighbour_port': port,
-                'connect_flag': connect_flag,
-                'sign': sign,
-                'responding_pub_key': neighbour_pub_key}
 
 
 class Client(host.UDPHost):

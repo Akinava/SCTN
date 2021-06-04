@@ -88,6 +88,6 @@ def unpack_stream(data, length):
 def encode(text):
     if isinstance(text, str):
         return text.encode()
-    if isinstance(bytes, str):
+    if isinstance(text, bytes):
         return text
-    raise Exception('Error: can\' encode, twrong type is {}'.format(type(text)))
+    raise Exception('Error: can\' encode, wrong type is {}'.format(type(text)))

@@ -118,9 +118,13 @@ class Connection:
         self.__set_remote_host(addr[0])
         self.__set_remote_port(addr[1])
 
+    def __get_remote_addr(self):
+        return (self.__remote_host, self.__remote_port)
+
     def send(self, response):
         logger.info('')
-        self.transport.sendto(encode(response), (self.__remote_host, self.__remote_port))
+        logger.info('send %s to %s' % (encode(response), self.__get_remote_addr()))
+        self.transport.sendto(encode(response), self.__get_remote_addr())
         self.__set_last_response()
 
     def shutdown(self):
@@ -195,7 +199,7 @@ class NetPool(Singleton):
             if not hasattr(connection, 'type'):
                 continue
             if connection.type == my_type:
-                group.add(connection)
+                group.append(connection)
         return group
 
     def shutdown(self):

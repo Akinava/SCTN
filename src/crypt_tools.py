@@ -95,7 +95,8 @@ class Tools(Singleton):
         return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
 
     def check_signature(self, message):
-        data, rest = unpack_stream(message, self.pub_key_length+self.sign_length)
+        data_length = len(message) - self.pub_key_length - self.sign_length
+        data, rest = unpack_stream(message, data_length)
         sign, pub_key = unpack_stream(rest, self.sign_length)
         ecdsa_pub = ECDSA(pub_key=pub_key)
         return ecdsa_pub.check_signature(message=data, signature=sign)

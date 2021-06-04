@@ -68,7 +68,7 @@ class UDPProtocol:
         for function_name in self_functions:
             if function_name == sys._getframe().f_code.co_name:
                 continue
-            if not 'define_' in function_name:
+            if not function_name.startswith('define_'):
                 continue
             define_function = getattr(self, function_name)
             if not define_function(connection) is True:
