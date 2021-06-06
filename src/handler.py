@@ -13,7 +13,7 @@ from connection import Connection, NetPool
 from utilit import encode
 
 
-class UDPProtocol:
+class Handler:
     msg_ping = b''
 
     def __init__(self, message=None):

@@ -10,12 +10,12 @@ import asyncio
 from settings import logger
 import settings
 import host
-import protocol
+import handler
 from connection import  Connection, Peers
 from utilit import unpack_stream
 
 
-class ClientHandler(protocol.UDPProtocol):
+class ClientHandler(handler.Handler):
     disconnect_flag = b'\xff'
     keep_connection_flag = b'\x00'
     addr_info_len = 6
