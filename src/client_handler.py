@@ -6,15 +6,6 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
-import asyncio
-from settings import logger
-import settings
-import host
-import handler
-from connection import  Connection, Peers
-from utilit import unpack_stream
-
-
 class ClientHandler(handler.Handler):
     disconnect_flag = b'\xff'
     keep_connection_flag = b'\x00'
@@ -62,8 +53,8 @@ class ClientHandler(handler.Handler):
         message = b''
         for server in servers:
             connection = Connection(
-            remote_host=server['host'],
-            remote_port=server['port'])
+                remote_host=server['host'],
+                remote_port=server['port'])
             message += server['fingerprint']
             message += self.server_protocol_map[server['protocol']]
             message += connection.dump_addr()
@@ -209,88 +200,12 @@ class ClientHandler(handler.Handler):
     def __check_swarm_peer_response_len(self, connection):
         request_len = len(connection.get_request())
         required_len = self.crypt_tools.fingerprint_length * 2 + \
-            len(self.addr_info_len) + \
-            len(self.keep_connection_flag) + \
-            self.crypt_tools.sign_length + \
-            self.crypt_tools.pub_key_length
+                       len(self.addr_info_len) + \
+                       len(self.keep_connection_flag) + \
+                       self.crypt_tools.sign_length + \
+                       self.crypt_tools.pub_key_length
         return request_len == required_len
 
     def __unpack_my_fingerprint(self, connection):
         message = connection.get_request()
         return message[: self.crypt_tools.fingerprint_length]
-
-
-class Client(host.UDPHost):
-    def __init__(self, handler):
-        logger.info('')
-        super(Client, self).__init__(handler=ClientHandler)
-        self.__extend_handler(handler)
-
-    async def run(self):
-        logger.info('')
-        self.listener = await self.create_endpoint(settings.local_host, settings.default_port)
-        await self.__serve_swarm()
-        await self.serve_forever()
-
-    def __extend_handler(self, handler):
-        logger.info('')
-        object_at_user_handler = handler()
-        self.__update_handler_protocol(object_at_user_handler)
-        self.__update_handler_functions(object_at_user_handler)
-
-    def __update_handler_protocol(self, object_at_user_handler):
-        self.handler.protocol.update(object_at_user_handler.protocol)
-
-    def __update_handler_functions(self, object_at_user_handler):
-        for func_name in dir(object_at_user_handler):
-            if hasattr(self.handler, func_name):
-                continue
-            func = getattr(object_at_user_handler, func_name)
-            setattr(self.handler, func_name, func)
-
-    async def __serve_swarm(self):
-        logger.info('')
-        while self.listener.is_alive():
-            if not self.__has_enough_client_connections() and not self.__has_server_connection():
-                await self.__find_new_connections()
-            await asyncio.sleep(settings.peer_ping_time_seconds)
-
-    def __has_enough_client_connections(self):
-        logger.info('')
-        return self.net_pool.has_enough_connections()
-
-    def __has_server_connection(self):
-        return len(self.net_pool.get_server_connections()) > 0
-
-    async def __find_new_connections(self):
-        if self.net_pool.swarm_status_stable() and self.net_pool.has_client_connection():
-            await self.__connect_via_client()
-        else:
-            await self.__connect_via_server()
-
-    async def __connect_via_client(self):
-        connection = self.net_pool.get_random_client_connection()
-        if not connection is None:
-            self.handler.do_swarm_peer_request(connection)
-        if self.__has_server_connection():
-            return
-
-    async def __connect_via_server(self):
-        server_data = Peers().get_random_server_from_file()
-        if not server_data is None:
-            await self.__do_swarm_peer_request_to_server(server_data)
-
-    async def __do_swarm_peer_request_to_server(self, server_data):
-        server_protocol = server_data['protocol']
-        if server_protocol == 'udp':
-            await self.__udp_swarm_peer_request_to_server(server_data)
-        else:
-            raise Exception('Error: {} protocol handler not implemented yet'.format(server_protocol))
-
-    async def __udp_swarm_peer_request_to_server(self, server_data):
-        connection = await self.create_endpoint(
-            remote_host=server_data['host'],
-            remote_port=server_data['port'])
-        connection.set_fingerprint(server_data['fingerprint'])
-        connection.set_type(server_data['type'])
-        self.handler().do_swarm_peer_request(connection)

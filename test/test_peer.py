@@ -13,42 +13,69 @@ from datetime import datetime
 import asyncio
 path = Path(os.path.dirname(os.path.realpath(__file__))).parent
 sys.path.append(os.path.join(path, 'src'))
-import client
+from client import Client
 from settings import logger
 
 
-class TestPeerHandler():
-    msg_test_peer_hello = 'test peer hello'
+time_format = '%Y.%m.%d-%H:%M:%S'
+PROTOCOL = {
+    'protocol version': __version__,
+    'package' : [
+        {
+            'name': 'test_peer_hello',
+            'package_id_marker': 128,
+            'define': [
+                'verify_test_peer_hello_package_len',
+                'verify_package_id_marker',
+            ],
+            'response': 'test_peer_time',
+            'structure': [
+                {'name': 'package_id_marker', 'length': 1},
+            ]
+        },
+        {
+            'name': 'test_peer_time',
+            'package_id_marker': 129,
+            'define': 'verify_package_id_marker',
+            'structure': [
+                {'name': 'package_id_marker', 'length': 1},
+                {'name': 'peer_time', 'length': len(time_format)},
+            ]
+        }
+    ]
+}
 
-    protocol = {
-        'request': 'response',
-        'test_peer_hello': 'test_peer_time',
-        'test_peer_time': None,
-    }
 
-    def init(self, connection):
+class TestPeerHandler:
+    def init(self):
         logger.info('')
-        self.do_test_peer_hello(connection)
+        self.do_test_peer_hello()
 
-    def define_test_peer_hello(self, connection):
+    def verify_test_peer_hello_package_len(self, package_protocol):
         logger.info('')
-        if connection.get_request() == msg_test_peer_hello:
-            return True
+        request_length = len(self.connection.get_request())
+        required_length = self.parser.calc_requared_length()
+        return required_length == request_length
 
-    def do_test_peer_hello(self, connection):
-        connection.send(msg_test_peer_hello)
+    def verify_package_id_marker(self, package_protocol):
+        request_id_marker = self.parser.get_part('package_id_marker')
+        required_id_marker = package_protocol['package_id_marker']
+        return request_id_marker == required_id_marker
 
-    def define_test_peer_time(self, connection):
+    def test_peer_time(self):
         logger.info('')
+        return self.make_message(package_name='test_peer_time')
 
-
-    def do_test_peer_time(self, connection):
-        logger.info('')
+    def get_peer_time(self, **kwarg):
         return datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
+
+    def get_package_id_marker(self, **kwarg):
+        marker = self.parser.find_protocol_package(kwargs['package_name'])['package_id_marker']
+        return self.parser.pack_int(marker, 1)
 
 
 if __name__ == '__main__':
     logger.info('test client start')
-    test_client = client.Client(handler=TestPeerHandler)
+    test_client = Client(handler=TestPeerHandler, protocol=PROTOCOL)
     asyncio.run(test_client.run())
     logger.info('test client shutdown')

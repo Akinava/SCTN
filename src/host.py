@@ -15,9 +15,10 @@ import utilit
 
 
 class UDPHost:
-    def __init__(self, handler):
+    def __init__(self, handler, protocol):
         logger.info('')
         self.handler = handler
+        self.protocol = protocol
         self.net_pool = NetPool()
         self.__set_posix_handler()
 
@@ -42,10 +43,9 @@ class UDPHost:
             return None
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: self.handler(),
+            lambda: self.handler(self.protocol),
             local_addr=local_addr,
             remote_addr=remote_addr)
-
         connection = Connection(
             local_host=local_host,
             local_port=local_port,
@@ -53,7 +53,6 @@ class UDPHost:
             remote_port=remote_port,
             transport=transport
         )
-
         return connection
 
     async def serve_forever(self):
