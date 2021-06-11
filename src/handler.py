@@ -14,8 +14,6 @@ from utilit import encode
 
 
 class Handler:
-    msg_ping = b''
-
     def __init__(self, message=None):
         logger.info('')
         self.net_pool = NetPool()
@@ -44,19 +42,16 @@ class Handler:
         self.net_pool.save_connection(connection)
         return connection
 
-    def __handle(self, connection):
-        logger.info('')
+    def __handle(self):
+        logger.debug('')
         # TODO make a tread
-        request_name = self.__define_request(connection)
-        logger.info('function defined as {}'.format(request_name))
-        if request_name is None:
+        package_protocol = self.__define_package()
+        self.parser.set_package_protocol(package_protocol)
+        logger.info('GeneralProtocol function defined as {}'.format(package_protocol['name']))
+        if package_protocol is None:
             return
-        response_function = self.__get_response_function(request_name)
-        if response_function is None:
-            return
-        request = response_function(connection)
-        if request:
-            self.__send_request(connection, request)
+        response_function = self.__get_response_function(package_protocol)
+        return response_function()
 
     def __send_request(self, connection, request):
         request = encode(request)
