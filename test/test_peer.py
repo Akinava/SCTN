@@ -19,7 +19,7 @@ from settings import logger
 
 time_format = '%Y.%m.%d-%H:%M:%S'
 PROTOCOL = {
-    'protocol version': __version__,
+    'protocol_version': __version__,
     'package' : [
         {
             'name': 'test_peer_hello',

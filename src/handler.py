@@ -42,6 +42,10 @@ class Handler:
         self.net_pool.save_connection(connection)
         return connection
 
+    def __send_request(self, connection, request):
+        request = encode(request)
+        connection.send(request)
+
     def __handle(self):
         logger.debug('')
         # TODO make a tread
@@ -53,33 +57,42 @@ class Handler:
         response_function = self.__get_response_function(package_protocol)
         return response_function()
 
-    def __send_request(self, connection, request):
-        request = encode(request)
-        connection.send(request)
+    def __define_package(self):
+        logger.debug('')
+        for package_protocol in self.protocol['package']:
+            if self.__define_request(package_protocol):
+                return package_protocol
+        logger.warn('GeneralProtocol can not define request')
 
-    def __define_request(self, connection):
-        logger.info('')
-        self_functions = dir(self)
-        for function_name in self_functions:
-            if function_name == sys._getframe().f_code.co_name:
-                continue
-            if not function_name.startswith('define_'):
-                continue
-            define_function = getattr(self, function_name)
-            if not define_function(connection) is True:
-                continue
-            request_name = function_name.replace('define_', '')
-            return request_name
-        logger.warn('UDPProtocol can not define request')
+    def __define_request(self, package_protocol):
+        define_protocol_functions = self.__get_define_protocol_functions(package_protocol)
+        for define_func_name in define_protocol_functions:
+            define_func = getattr(self, define_func_name)
+            if not define_func(package_protocol) is True:
+                return False
+        return True
 
-    def __get_response_function(self, request_name):
-        response_name = self.protocol[request_name]
-        logger.info('UDPProtocol response_name {}'.format(response_name))
-        response_function_name = 'do_{}'.format(response_name)
-        logger.info('UDPProtocol response_function_name {}'.format(response_function_name))
-        if not hasattr(self, response_function_name):
-            return
+    def __get_define_protocol_functions(self, package_protocol):
+        define_protocol_functions = package_protocol['define']
+        if isintance(define_protocol_functions, list):
+            return define_protocol_functions
+        return [define_protocol_functions]
+
+    def __get_response_function(self, request_protocol):
+        logger.info('GeneralProtocol response_name {}'.format(request_protocol['name']))
+        response_function_name = request_protocol.get('response')
+        if response_function_name in None:
+            logger.info('GeneralProtocol no response_function_name')
+        logger.info('GeneralProtocol response_function_name {}'.format(response_function_name))
         return getattr(self, response_function_name)
+
+    def make_message(self, **kwargs):
+        message = b''
+        package_structure = self.parser.find_protocol_package(kwargs['package_name'])['structure']
+        for part_structure in package_structure:
+            build_part_messge_function = getattr(self, 'get_{}'.format(part_structure['name']))
+            message += build_part_messge_function(**kwargs)
+        return message
 
     def define_swarm_ping(self, connection):
         if connection.get_request() == msg_ping:

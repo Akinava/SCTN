@@ -10,7 +10,7 @@ from crypt_tools import Tools as CryptTools
 
 
 PROTOCOL = {
-    'protocol version': __version__,
+    'client_protocol_version': __version__,
     'package' : [
         {
             'name': 'swarm_ping',
@@ -35,8 +35,13 @@ PROTOCOL = {
             ]
         },
         {
-            'name': 'swarm_peer_response',
+            'name': 'swarm_peer',
             'package_id_marker': 2,
+            'define': [
+                'verify_len_swarm_peer',
+                'verify_package_id_marker',
+                'verify_timestamp',
+            ],
             'structure': [
                 {'name': 'package_id_marker', 'length': 1},
                 {'name': 'neighbour_open_key', 'length': CryptTools.pub_key_length},
