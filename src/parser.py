@@ -19,7 +19,6 @@ class Parser:
         8: 'Q',
     }
     struct_addr = '>BBBBH'
-
     def __init__(self, protocol):
         self.__protocol = protocol
 
@@ -79,6 +78,7 @@ class Parser:
         host, port = addr
         return struct.pack(self.struct_addr, *(map(int, host.split('.'))), port)
 
+    @classmethod
     def get_packed_addr_length(self):
         return struct.calcsize(self.struct_addr)
 

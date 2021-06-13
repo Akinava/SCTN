@@ -10,19 +10,25 @@ import struct
 from time import time
 import random
 import json
+from datetime import timedelta
 from crypt_tools import Tools as CryptTools
-from utilit import Singleton, encode
+from utilit import Singleton, encode, now, str_to_datetime
 import settings
 from settings import logger
 
 
 class Connection:
     def __init__(self, local_host=None, local_port=None, remote_host=None, remote_port=None, transport=None):
-        if local_host: self.__set_local_host(local_host)
-        if local_port: self.__set_local_port(local_port)
-        if remote_host: self.__set_remote_host(remote_host)
-        if remote_port: self.__set_remote_port(remote_port)
-        if transport: self.__set_transport(transport)
+        if local_host:
+            self.__set_local_host(local_host)
+        if local_port:
+            self.__set_local_port(local_port)
+        if remote_host:
+            self.__set_remote_host(remote_host)
+        if remote_port:
+            self.__set_remote_port(remote_port)
+        if transport:
+            self.__set_transport(transport)
         self.__set_last_response()
 
     def __eq__(self, connection):
@@ -280,7 +286,7 @@ class Peers(Singleton):
 
     def __save_file(self, data):
         with open(settings.peers_file, 'w') as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data, indent=4))
 
     def __unpack_peers_fingerprint(self, peers):
         return CryptTools().unpack_peers_fingerprint(peers)
@@ -288,10 +294,10 @@ class Peers(Singleton):
     def __pack_peers_fingerprint(self, peers):
         return CryptTools().pack_peers_fingerprint(peers)
 
-    def __filter_peers_by_type(self, filter):
+    def __filter_peers_by_type(self, peers_filter):
         filtered_peers = []
         for peer in self.__peers:
-            if peer['type'] != filter:
+            if peer['type'] != peers_filter:
                 continue
             filtered_peers.append(peer)
         return filtered_peers

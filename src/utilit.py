@@ -26,6 +26,10 @@ class Singleton(object):
         return cls._instance
 
 
+class NULL(Singleton):
+    pass
+
+
 def now():
     return datetime.now().strftime(DATA_FORMAT)
 
