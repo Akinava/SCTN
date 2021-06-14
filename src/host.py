@@ -32,27 +32,17 @@ class UDPHost:
         if signum == signal.SIGUSR1:
             self.__config_reload()
 
-    async def create_endpoint(self, remote_host=None, remote_port=None, local_host=None, local_port=None):
-        local_addr = None
-        if not local_host is None and not local_port is None:
-            local_addr = (local_host, local_port)
-        remote_addr = None
-        if not remote_host is None and not remote_port is None:
-            remote_addr = (remote_host, remote_port)
-        if local_addr is None and remote_addr is None:
-            return None
+    async def create_endpoint(self, remote_addr=None, local_addr=None):
+        logger.info('')
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: self.handler(self.protocol),
             local_addr=local_addr,
             remote_addr=remote_addr)
         connection = Connection(
-            local_host=local_host,
-            local_port=local_port,
-            remote_host=remote_host,
-            remote_port=remote_port,
-            transport=transport
-        )
+            local_addr=local_addr,
+            remote_addr=remote_addr,
+            transport=transport)
         return connection
 
     async def serve_forever(self):

@@ -21,18 +21,18 @@ class Tools(Singleton):
     sign_length = 64
 
     def __init__(self):
-        logger.info('crypt_tools init')
+        logger.info('')
         self.init_ecdsa()
 
     def init_ecdsa(self):
-        logger.info('crypt_tools init_ecdsa')
+        logger.info('')
         if self.get_ecdsa_from_file():
             return
         self.generate_new_ecdsa()
         self.save_ecdsa()
 
     def read_shadow_file(self):
-        logger.info('crypt_tools read_shadow_file')
+        logger.info('')
         if not os.path.isfile(settings.shadow_file):
             return None
         with open(settings.shadow_file) as shadow_file:
@@ -42,12 +42,12 @@ class Tools(Singleton):
                 return None
 
     def save_shadow_file(self, data):
-        logger.info('crypt_tools save_shadow_file')
+        logger.info('')
         with open(settings.shadow_file, 'w') as shadow_file:
             shadow_file.write(json.dumps(data, indent=2))
 
     def update_shadow_file(self, new_data):
-        logger.info('crypt_tools update_shadow_file')
+        logger.info('')
         file_data = {} or self.read_shadow_file()
         if file_data is None:
             file_data = {}
@@ -55,7 +55,7 @@ class Tools(Singleton):
         self.save_shadow_file(file_data)
 
     def get_ecdsa_from_file(self):
-        logger.info('crypt_tools get_ecdsa_from_file')
+        logger.info('')
         shadow_data = self.read_shadow_file()
         if shadow_data is None:
             return False
@@ -67,11 +67,11 @@ class Tools(Singleton):
         return True
 
     def generate_new_ecdsa(self):
-        logger.info('crypt_tools generate_new_ecdsa')
+        logger.info('')
         self.ecdsa = ECDSA()
 
     def save_ecdsa(self):
-        logger.info('crypt_tools save_ecdsa')
+        logger.info('')
         ecdsa_priv_key = self.ecdsa.get_priv_key()
         ecdsa_priv_key_b58 = B58().pack(ecdsa_priv_key)
         fingerprint_b58 = B58().pack(self.get_fingerprint())
@@ -82,7 +82,7 @@ class Tools(Singleton):
         )
 
     def get_fingerprint(self):
-        logger.info('crypt_tools get_fingerprint')
+        logger.info('')
         if not hasattr(self, 'fingerprint'):
             self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
         return self.fingerprint
@@ -91,7 +91,6 @@ class Tools(Singleton):
         return sha256(open_key)
 
     def sign_message(self, message):
-        print('Tools, sign_message: message|sign|pub_key', len(message), len(self.ecdsa.sign(message)), len(self.ecdsa.get_pub_key()))
         return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
 
     def check_signature(self, message):

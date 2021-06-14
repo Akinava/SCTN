@@ -18,18 +18,24 @@ from settings import logger
 
 
 class Connection:
-    def __init__(self, local_host=None, local_port=None, remote_host=None, remote_port=None, transport=None):
-        if local_host:
-            self.__set_local_host(local_host)
-        if local_port:
-            self.__set_local_port(local_port)
-        if remote_host:
-            self.__set_remote_host(remote_host)
-        if remote_port:
-            self.__set_remote_port(remote_port)
+    host_place = 0
+    port_place = 1
+
+    def __init__(self, local_addr=None, remote_addr=None, transport=None):
+        logger.info('Connection')
+        if local_addr:
+            self.__set_local_addr(local_addr)
+        if remote_addr:
+            self.__set_remote_addr(remote_addr)
         if transport:
             self.__set_transport(transport)
         self.__set_last_response()
+
+    def __set_local_addr(self, addr):
+        self.local_host, self.local_port = addr
+
+    def __set_remote_addr(self, addr):
+        self.remote_host, self.remote_port = addr
 
     def __eq__(self, connection):
         if self.__remote_host != connection.__remote_host:
@@ -141,6 +147,7 @@ class Connection:
 
 class NetPool(Singleton):
     def __init__(self):
+        logger.info('NetPool')
         self.__group = []
 
     def __clean_groups(self):
@@ -165,6 +172,7 @@ class NetPool(Singleton):
             self.__swarm_stable = True
 
     def has_enough_connections(self):
+        logger.info('')
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
     def __mark_connection_type(self, connection):
@@ -185,6 +193,7 @@ class NetPool(Singleton):
         return self.__group
 
     def get_all_client_connections(self):
+        logger.info('')
         return self.__filter_connection_by_type('client')
 
     def get_random_client_connection(self):
@@ -216,15 +225,18 @@ class NetPool(Singleton):
 
 class Peers(Singleton):
     def __init__(self):
+        logger.info('Peers')
         self.__load()
 
     def get_random_server_from_file(self):
+        logger.info('')
         servers = self.__filter_peers_by_type('server')
         if not servers:
             return None
         return random.choice(servers)
 
     def save_server_last_response_time(self, connection):
+        logger.info('')
         server = self.__find_peer({
             'type': 'server',
             'fingerprint': connection.get_fingerprint(),
@@ -235,6 +247,7 @@ class Peers(Singleton):
             self.__save()
 
     def __find_peer(self, filter_kwargs):
+        logger.info('')
         for peer in self.__peers:
             for key, val in filter_kwargs.items():
                 if peer.get(key) != val:
@@ -289,12 +302,15 @@ class Peers(Singleton):
             f.write(json.dumps(data, indent=4))
 
     def __unpack_peers_fingerprint(self, peers):
+        logger.info('')
         return CryptTools().unpack_peers_fingerprint(peers)
 
     def __pack_peers_fingerprint(self, peers):
+        logger.info('')
         return CryptTools().pack_peers_fingerprint(peers)
 
     def __filter_peers_by_type(self, peers_filter):
+        logger.info('')
         filtered_peers = []
         for peer in self.__peers:
             if peer['type'] != peers_filter:

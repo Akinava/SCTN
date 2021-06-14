@@ -25,16 +25,10 @@ class Parser:
     def set_package_protocol(self, package_protocol):
         self.package_protocol = package_protocol
 
-    def find_protocol_package(self, package_name):
-        for package_protocol in self.__protocol:
-            if package_protocol['name'] == package_name:
-                return package_protocol
-        raise Exception('Error: no protocol with the name {}'.format(package_name))
-
     def set_connection(self, connection):
         self.connection = connection
 
-    def unpack(self):
+    def unpack_package(self):
         package = {}
         data = self.connection.get_request()
         package_structure = self.package_protocol['structure']

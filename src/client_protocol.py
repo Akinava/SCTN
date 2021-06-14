@@ -7,12 +7,12 @@ __version__ = [0, 0]
 
 
 from crypt_tools import Tools as CryptTools
-from parser import Parser
+from package_parser import Parser
 
 
 PROTOCOL = {
     'client_protocol_version': __version__,
-    'package' : {
+    'package': {
         'swarm_ping': {
             'name': 'swarm_ping',
             'define': 'define_swarm_ping'},
@@ -73,7 +73,7 @@ PROTOCOL = {
             'structure': [
                 {'name': 'sstn_open_key', 'length': CryptTools.pub_key_length},
                 {'name': 'sstn_type', 'length': 1},
-                {'name': 'sstn_addr', 'length': Parser().get_packed_addr_length()}]}
+                {'name': 'sstn_addr', 'length': Parser.get_packed_addr_length()}]}
     },
     'contraction': {
         'ctr_verify_ver_id_marker_timestamp_my_fingerprint': {

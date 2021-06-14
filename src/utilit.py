@@ -8,9 +8,8 @@ __version__ = [0, 0]
 
 import json
 import sys
-import random
 import struct
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 import settings
 import get_args
@@ -20,10 +19,17 @@ DATA_FORMAT = '%Y.%m.%d %H:%M:%S'
 
 
 class Singleton(object):
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if not hasattr(cls, '_instance'):
             cls._instance = super(Singleton, cls).__new__(cls)
+        if hasattr(cls, '_initialized'):
+            cls.__init__ = cls.__skip_init__
+        if not hasattr(cls, '_initialized'):
+            cls._initialized = True
         return cls._instance
+
+    def __skip_init__(self, *args, **kwargs):
+        return
 
 
 class NULL(Singleton):
@@ -95,3 +101,21 @@ def encode(text):
     if isinstance(text, bytes):
         return text
     raise Exception('Error: can\' encode, wrong type is {}'.format(type(text)))
+
+
+def update_obj(src, dst):
+    if isinstance(src, dict) and isinstance(dst, dict):
+        return update_dict(src, dst)
+    if isinstance(src, list) and isinstance(dst, list):
+        return update_list(src, dst)
+    return src
+
+
+def update_dict(src, dst):
+    for key, val in src.items():
+        dst[key] = update_obj(val, dst.get(key))
+    return dst
+
+
+def update_list(src, dst):
+    return dst + src

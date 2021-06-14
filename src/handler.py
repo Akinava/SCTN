@@ -10,16 +10,19 @@ import sys
 from settings import logger
 from crypt_tools import Tools as CryptTools
 from connection import Connection, NetPool
+from package_parser import Parser
 from utilit import encode
 
 
 class Handler:
-    def __init__(self, message=None):
+    def __init__(self, protocol, message=None):
         logger.info('')
         self.net_pool = NetPool()
         self.crypt_tools = CryptTools()
         self.response = message
         self.transport = None
+        self.protocol = protocol
+        self.parser = Parser(protocol)
 
     def connection_made(self, transport):
         logger.info('')
@@ -38,7 +41,7 @@ class Handler:
         self.net_pool.disconnect(connection)
 
     def make_connection(self, remote_host, remote_port):
-        connection = Connection(transport=self.transport, remote_host=remote_host, remote_port=remote_port)
+        connection = Connection(transport=self.transport, remote_addr=(remote_host, remote_port))
         self.net_pool.save_connection(connection)
         return connection
 
@@ -88,7 +91,7 @@ class Handler:
 
     def make_message(self, **kwargs):
         message = b''
-        package_structure = self.parser.find_protocol_package(kwargs['package_name'])['structure']
+        package_structure = self.protocol['package'][kwargs['package_name']]['structure']
         for part_structure in package_structure:
             build_part_messge_function = getattr(self, 'get_{}'.format(part_structure['name']))
             message += build_part_messge_function(**kwargs)
@@ -100,4 +103,4 @@ class Handler:
         return False
 
     def do_swarm_ping(self, connection):
-        return msg_ping
+        connection.send(b'')

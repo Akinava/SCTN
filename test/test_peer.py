@@ -9,44 +9,42 @@ __version__ = [0, 0]
 import sys
 import os
 from pathlib import Path
-from datetime import datetime
 import asyncio
 path = Path(os.path.dirname(os.path.realpath(__file__))).parent
 sys.path.append(os.path.join(path, 'src'))
-from client import Client
+
+
+from client_host import Client
 from settings import logger
+from utilit import now
 
 
-time_format = '%Y.%m.%d-%H:%M:%S'
 PROTOCOL = {
     'protocol_version': __version__,
-    'package' : [
-        {
+    'package': {
+        'test_peer_hello': {
             'name': 'test_peer_hello',
             'package_id_marker': 128,
             'define': [
                 'verify_test_peer_hello_package_len',
-                'verify_package_id_marker',
-            ],
+                'verify_package_id_marker'],
             'response': 'test_peer_time',
             'structure': [
-                {'name': 'package_id_marker', 'length': 1},
-            ]
+                {'name': 'package_id_marker', 'length': 1}]
         },
-        {
+        'test_peer_time': {
             'name': 'test_peer_time',
             'package_id_marker': 129,
             'define': 'verify_package_id_marker',
             'structure': [
                 {'name': 'package_id_marker', 'length': 1},
-                {'name': 'peer_time', 'length': len(time_format)},
-            ]
+                {'name': 'peer_time', 'length': len(now())}]
         }
-    ]
+    }
 }
 
 
-class TestPeerHandler:
+class Handler:
     def init(self):
         logger.info('')
         self.do_test_peer_hello()
@@ -67,7 +65,7 @@ class TestPeerHandler:
         return self.make_message(package_name='test_peer_time')
 
     def get_peer_time(self, **kwarg):
-        return datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
+        return now()
 
     def get_package_id_marker(self, **kwarg):
         marker = self.parser.find_protocol_package(kwargs['package_name'])['package_id_marker']
@@ -76,6 +74,6 @@ class TestPeerHandler:
 
 if __name__ == '__main__':
     logger.info('test client start')
-    test_client = Client(handler=TestPeerHandler, protocol=PROTOCOL)
+    test_client = Client(handler=Handler, protocol=PROTOCOL)
     asyncio.run(test_client.run())
     logger.info('test client shutdown')
