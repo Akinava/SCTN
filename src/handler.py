@@ -93,7 +93,11 @@ class Handler:
         message = b''
         package_structure = self.protocol['package'][kwargs['package_name']]['structure']
         for part_structure in package_structure:
-            build_part_messge_function = getattr(self, 'get_{}'.format(part_structure['name']))
+            if part_structure.get('type') == 'markers':
+                build_part_messge_function = self.get_markers
+                kwargs['markers'] = part_structure
+            else:
+                build_part_messge_function = getattr(self, 'get_{}'.format(part_structure['name']))
             message += build_part_messge_function(**kwargs)
         return message
 

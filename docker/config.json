@@ -4,8 +4,9 @@
   "peer_connections": 10,
   "shadow_file": "shadow",
   "peers_file": "peers.json",
-  "default_port": 2003,
+  "default_port": 2004,
   "local_host": "0.0.0.0",
   "attempt_connect": 5,
-  "servers_timeout_days": 7
+  "servers_timeout_days": 7,
+  "request_encrypted_protocol": true
 }

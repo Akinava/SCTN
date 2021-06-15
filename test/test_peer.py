@@ -67,9 +67,9 @@ class Handler:
     def get_peer_time(self, **kwarg):
         return now()
 
-    def get_package_id_marker(self, **kwarg):
-        marker = self.parser.find_protocol_package(kwargs['package_name'])['package_id_marker']
-        return self.parser.pack_int(marker, 1)
+    # def get_package_id_marker(self, **kwarg):
+    #     marker = self.parser.find_protocol_package(kwargs['package_name'])['package_id_marker']
+    #     return self.parser.pack_int(marker, 1)
 
 
 if __name__ == '__main__':

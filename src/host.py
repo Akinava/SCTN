@@ -33,7 +33,7 @@ class UDPHost:
             self.__config_reload()
 
     async def create_endpoint(self, remote_addr=None, local_addr=None):
-        logger.info('')
+        logger.info('local_addr {}, remote_addr {}'.format(local_addr, remote_addr))
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: self.handler(self.protocol),

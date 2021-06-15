@@ -12,7 +12,7 @@ import settings
 from host import UDPHost
 from client_handler import ClientHandler
 from client_protocol import PROTOCOL as ClientProtocol
-from connection import Peers
+from connection import Peers, Connection
 from utilit import update_obj
 
 
@@ -83,8 +83,10 @@ class Client(UDPHost):
 
     async def __udp_swarm_peer_request_to_server(self, server_data):
         logger.info('')
-        connection = await self.create_endpoint(
-            remote_addr=(server_data['host'], server_data['port']))
+        # connection = await self.create_endpoint(
+        #     remote_addr=(server_data['host'], server_data['port']))
+        connection = self.listener.copy()
+        connection.set_remote_addr((server_data['host'], server_data['port']))
         connection.set_fingerprint(server_data['fingerprint'])
         connection.set_type(server_data['type'])
         connection.send(self.handler(self.protocol).swarm_peer_request(server_connection=connection))

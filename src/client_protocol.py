@@ -61,10 +61,10 @@ PROTOCOL = {
                 {'name': 'sstn_list', 'type': 'list'}]}
     },
     'markers': {
-        'encrypted_request_marker': {'name': 'encrypted_request_marker', 'start bit': 0, 'length': 1, 'type': 'bool_marker'},
-        'package_id_marker': {'name': 'package_id_marker', 'start bit': 1, 'length': 7, 'type': 'int'},
-        'major_version_marker': {'name': 'major_version_marker', 'start bit': 0, 'length': 4, 'type': 'int'},
-        'minor_version_marker': {'name': 'minor_version_marker', 'start bit': 4, 'length': 4, 'type': 'int'},
+        'encrypted_request_marker': {'name': 'encrypted_request_marker', 'start_bit': 0, 'length': 1, 'type': 'bool_marker'},
+        'package_id_marker': {'name': 'package_id_marker', 'start_bit': 1, 'length': 7, 'type': 'int'},
+        'major_version_marker': {'name': 'major_version_marker', 'start_bit': 0, 'length': 4, 'type': 'int'},
+        'minor_version_marker': {'name': 'minor_version_marker', 'start_bit': 4, 'length': 4, 'type': 'int'},
     },
     'lists': {
         'sstn_list': {

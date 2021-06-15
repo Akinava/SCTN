@@ -26,16 +26,19 @@ class Connection:
         if local_addr:
             self.__set_local_addr(local_addr)
         if remote_addr:
-            self.__set_remote_addr(remote_addr)
+            self.set_remote_addr(remote_addr)
         if transport:
             self.__set_transport(transport)
         self.__set_last_response()
 
+    def copy(self):
+        return Connection(transport=self.transport)
+
     def __set_local_addr(self, addr):
         self.local_host, self.local_port = addr
 
-    def __set_remote_addr(self, addr):
-        self.remote_host, self.remote_port = addr
+    def set_remote_addr(self, addr):
+        self.__remote_host, self.__remote_port = addr
 
     def __eq__(self, connection):
         if self.__remote_host != connection.__remote_host:
@@ -114,28 +117,16 @@ class Connection:
     def dump_addr(self):
         return struct.pack('>BBBBH', *(map(int, self.__remote_host.split('.'))), self.__remote_port)
 
-    @classmethod
-    def loads_addr(self, addr):
-        host_tuple = struct.unpack('>BBBB', addr[:4])
-        host = '.'.join(map(str, host_tuple))
-        port = struct.unpack('>H', addr[4:])[0]
-        return host, port
-
     def datagram_received(self, request, remote_addr, transport):
         self.set_remote_addr(remote_addr)
         self.__set_request(request)
         self.__set_transport(transport)
 
-    def set_remote_addr(self, addr):
-        self.__set_remote_host(addr[0])
-        self.__set_remote_port(addr[1])
-
     def __get_remote_addr(self):
         return (self.__remote_host, self.__remote_port)
 
     def send(self, response):
-        logger.info('')
-        logger.info('send %s to %s' % (encode(response), self.__get_remote_addr()))
+        logger.info('send %s to %s' % (encode(response).hex(), self.__get_remote_addr()))
         self.transport.sendto(encode(response), self.__get_remote_addr())
         self.__set_last_response()
 

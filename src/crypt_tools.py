@@ -87,6 +87,9 @@ class Tools(Singleton):
             self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
         return self.fingerprint
 
+    def get_open_key(self):
+        return self.ecdsa.get_pub_key()
+
     def make_fingerprint(self, open_key):
         return sha256(open_key)
 
