@@ -40,7 +40,7 @@ class ClientHandler(Handler):
         return settings.request_encrypted_protocol == True
 
     def _get_marker_package_id_marker(self, **kwargs):
-        return self.protocol['package'][kwargs['package_name']]['package_id_marker']
+        return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
 
     def get_my_fingerprint(self, **kwargs):
         # return receiver fingerprint

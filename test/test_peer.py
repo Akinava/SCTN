@@ -21,7 +21,7 @@ from utilit import now
 
 PROTOCOL = {
     'protocol_version': __version__,
-    'package': {
+    'packages': {
         'test_peer_hello': {
             'name': 'test_peer_hello',
             'package_id_marker': 128,

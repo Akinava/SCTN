@@ -91,7 +91,7 @@ class Handler:
 
     def make_message(self, **kwargs):
         message = b''
-        package_structure = self.protocol['package'][kwargs['package_name']]['structure']
+        package_structure = self.protocol['packages'][kwargs['package_name']]['structure']
         for part_structure in package_structure:
             if part_structure.get('type') == 'markers':
                 build_part_messge_function = self.get_markers

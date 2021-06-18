@@ -54,7 +54,7 @@ class Parser:
         return part_data == 1
 
     def pack_bool(self, part_data):
-        return b'\xff' if part_data else b'\x00'
+        return b'\x01' if part_data else b'\x00'
 
     def get_part(self, name):
         return self.unpack(self.connection, self.package_protocol).get(name, NULL())
