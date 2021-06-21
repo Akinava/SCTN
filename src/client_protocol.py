@@ -21,12 +21,12 @@ PROTOCOL = {
             'package_id_marker': 1,
             'define': [
                 'verify_len_swarm_peer_request',
-                'ctr_verify_ver_id_marker_timestamp_my_fingerprint'],
+                'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'response': 'swarm_peer',
             'structure': [
                 {'name': ('major_version_marker', 'minor_version_marker'), 'length': 1, 'type': 'markers'},
                 {'name': ('encrypted_request_marker', 'package_id_marker'), 'length': 1, 'type': 'markers'},
-                {'name': 'my_fingerprint', 'length': CryptTools.fingerprint_length},
+                {'name': 'receiver_fingerprint', 'length': CryptTools.fingerprint_length},
                 {'name': 'timestamp', 'length': 4, 'type': 'timestamp'},
                 {'name': 'requester_open_key', 'length': CryptTools.pub_key_length}]},
         'swarm_peer': {
@@ -34,9 +34,9 @@ PROTOCOL = {
             'package_id_marker': 2,
             'define': [
                 'verify_len_swarm_peer',
-                'ctr_verify_ver_id_marker_timestamp_my_fingerprint'],
+                'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'structure': [
-                {'name': 'ctr_structure_version_id_marker_my_fingerprint_timestamp', 'type': 'contraction'},
+                {'name': 'ctr_structure_version_id_marker_receiver_fingerprint_timestamp', 'type': 'contraction'},
                 {'name': 'neighbour_open_key', 'length': CryptTools.pub_key_length},
                 {'name': 'neighbour_addr', 'length': Parser.get_packed_addr_length()},
                 {'name': 'disconnect_flag', 'length': 1, 'type': 'bool'}]},
@@ -45,19 +45,19 @@ PROTOCOL = {
             'package_id_marker': 3,
             'define': [
                 'verify_len_sstn_request',
-                'ctr_verify_ver_id_marker_timestamp_my_fingerprint'],
+                'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'response': 'sstn_list',
             'structure': [
-                {'name': 'ctr_structure_version_id_marker_my_fingerprint_timestamp', 'type': 'contraction'}]
+                {'name': 'ctr_structure_version_id_marker_receiver_fingerprint_timestamp', 'type': 'contraction'}]
         },
         'sstn_list': {
             'name': 'sstn_list',
             'package_id_marker': 4,
             'define': [
                 'verify_len_sstn_list',
-                'ctr_verify_ver_id_marker_timestamp_my_fingerprint'],
+                'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'structure': [
-                {'name': 'ctr_structure_version_id_marker_my_fingerprint_timestamp', 'type': 'contraction'},
+                {'name': 'ctr_structure_version_id_marker_receiver_fingerprint_timestamp', 'type': 'contraction'},
                 {'name': 'sstn_list', 'type': 'list'}]}
     },
     'markers': {
@@ -76,19 +76,19 @@ PROTOCOL = {
                 {'name': 'sstn_addr', 'length': Parser.get_packed_addr_length()}]}
     },
     'contraction': {
-        'ctr_verify_ver_id_marker_timestamp_my_fingerprint': {
-            'name': 'ctr_verify_ver_id_marker_timestamp_my_fingerprint',
+        'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint': {
+            'name': 'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint',
             'structure': [
                 'verify_protocol_version',
                 'verify_package_id_marker',
                 'verify_timestamp',
-                'verify_my_fingerprint']},
-        'ctr_structure_version_id_marker_my_fingerprint_timestamp': {
-            'name': 'ctr_structure_version_id_marker_my_fingerprint_timestamp',
+                'verify_receiver_fingerprint']},
+        'ctr_structure_version_id_marker_receiver_fingerprint_timestamp': {
+            'name': 'ctr_structure_version_id_marker_receiver_fingerprint_timestamp',
             'structure': [
                 {'name': ('major_version_marker', 'minor_version_marker'), 'length': 1, 'type': 'markers'},
                 {'name': 'package_id_marker', 'length': 1},
-                {'name': 'my_fingerprint', 'length': CryptTools.fingerprint_length},
+                {'name': 'receiver_fingerprint', 'length': CryptTools.fingerprint_length},
                 {'name': 'timestamp', 'length': 4, 'type': 'timestamp'},
             ]
         }

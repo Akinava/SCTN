@@ -14,7 +14,7 @@ class ClientHandler(Handler):
     def swarm_peer_request(self, **kwargs):
         return self.make_message(
             package_name='swarm_peer_request',
-            server_connection=kwargs['server_connection'])
+            receiver_connection=kwargs['receiver_connection'])
 
     def get_markers(self, **kwargs):
         markers = 0
@@ -42,9 +42,8 @@ class ClientHandler(Handler):
     def _get_marker_package_id_marker(self, **kwargs):
         return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
 
-    def get_my_fingerprint(self, **kwargs):
-        # return receiver fingerprint
-        return kwargs['server_connection'].get_fingerprint()
+    def get_receiver_fingerprint(self, **kwargs):
+        return kwargs['receiver_connection'].get_fingerprint()
 
     def get_timestamp(self, **kwargs):
         return self.parser.pack_timestemp()

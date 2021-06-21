@@ -35,17 +35,17 @@ class Parser:
         for part_structure in package_structure:
             part_name = part_structure['name']
             part_data, data = self.__unpack_stream(data, part_structure['length'])
-            part_data = self.set_type(part_data, part_structure)
+            part_data = self.unpack_type(part_data, part_structure)
             package[part_name] = part_data
             self.__unpack_markers(part_name, package)
         return package
 
-    def set_type(self, part_data, part_structure):
+    def unpack_type(self, part_data, part_structure):
         part_type = part_structure.get('type', NULL())
         if part_type is NULL():
             return part_data
-        set_type_function = getattr(self, 'unpack_{}'.format(part_type))
-        return set_type_function(part_data)
+        unpack_type_function = getattr(self, 'unpack_{}'.format(part_type))
+        return unpack_type_function(part_data)
 
     def unpack_timestamp(self, part_data):
         return self.unpack_int(part_data)
@@ -84,7 +84,6 @@ class Parser:
             return
         for marker_name in part_name:
             marker_structure = self.__get_marker_description(marker_name)
-            marker_data = self.set_type(marker_data, marker_structure)
             marker_data = self.__unpack_marker(marker_structure, markers_packed_data)
             package[marker_name] = marker_data
         del package[markers]

@@ -94,11 +94,11 @@ class Handler:
         package_structure = self.protocol['packages'][kwargs['package_name']]['structure']
         for part_structure in package_structure:
             if part_structure.get('type') == 'markers':
-                build_part_messge_function = self.get_markers
+                build_part_message_function = self.get_markers
                 kwargs['markers'] = part_structure
             else:
-                build_part_messge_function = getattr(self, 'get_{}'.format(part_structure['name']))
-            message += build_part_messge_function(**kwargs)
+                build_part_message_function = getattr(self, 'get_{}'.format(part_structure['name']))
+            message += build_part_message_function(**kwargs)
         return message
 
     def define_swarm_ping(self, connection):

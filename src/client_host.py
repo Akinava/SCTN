@@ -89,4 +89,4 @@ class Client(UDPHost):
         connection.set_remote_addr((server_data['host'], server_data['port']))
         connection.set_fingerprint(server_data['fingerprint'])
         connection.set_type(server_data['type'])
-        connection.send(self.handler(self.protocol).swarm_peer_request(server_connection=connection))
+        connection.send(self.handler(self.protocol).swarm_peer_request(receiver_connection=connection))
