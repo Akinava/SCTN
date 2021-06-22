@@ -29,7 +29,10 @@ class Connection:
             self.set_remote_addr(remote_addr)
         if transport:
             self.__set_transport(transport)
-        self.__set_last_response()
+        self.__set_last_request()
+
+    def __str__(self):
+        return '{}:{}'.format(self.__remote_host, self.__remote_port)
 
     def copy(self):
         return Connection(transport=self.transport)
@@ -56,10 +59,6 @@ class Connection:
         return time() - self.__last_response > settings.peer_timeout_seconds
 
     def last_request_is_time_out(self):
-        if not hasattr(self, '__last_request'):
-            if self.__last_send_made_over_peer_timeout_but_has_no_request():
-                return True
-            return None
         return time() - self.__last_request > settings.peer_timeout_seconds
 
     def last_response_is_over_ping_time(self):
@@ -145,7 +144,7 @@ class NetPool(Singleton):
         alive_group_tmp = []
         for connection in self.__group:
             if connection.last_request_is_time_out() is True:
-                connection.shutdown()
+                logger.debug('host {} disconnected bt timeout'.format(connection))
                 continue
             self.__mark_connection_type(connection)
             alive_group_tmp.append(connection)
@@ -163,7 +162,7 @@ class NetPool(Singleton):
             self.__swarm_stable = True
 
     def has_enough_connections(self):
-        logger.info('')
+        logger.info('NetPool')
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
     def __mark_connection_type(self, connection):
@@ -171,6 +170,7 @@ class NetPool(Singleton):
             connection.type = 'client'
 
     def save_connection(self, new_connection):
+        logger.info('NetPool')
         if not new_connection in self.__group:
             self.__group.append(new_connection)
             return
@@ -192,6 +192,7 @@ class NetPool(Singleton):
         return random.choice(group) if group else None
 
     def get_server_connections(self):
+        logger.info('NetPool')
         return self.__filter_connection_by_type('server')
 
     def has_client_connection(self):
@@ -199,6 +200,7 @@ class NetPool(Singleton):
         return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
+        logger.info('NetPool {}'.format(my_type))
         self.__clean_groups()
         group = []
         for connection in self.__group:

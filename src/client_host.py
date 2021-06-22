@@ -26,8 +26,10 @@ class Client(UDPHost):
     async def run(self):
         logger.info('')
         self.listener = await self.create_endpoint(local_addr=(settings.local_host, settings.default_port))
-        await self.__serve_swarm()
-        await self.serve_forever()
+        client_task = asyncio.create_task(self.__serve_swarm())
+        ping_task = asyncio.create_task(self.serve_forever())
+        await client_task
+        await ping_task
 
     def __extend_protocol(self, protocol):
         self.protocol = update_obj(protocol, self.protocol)
@@ -42,51 +44,54 @@ class Client(UDPHost):
     async def __serve_swarm(self):
         logger.info('')
         while self.listener.is_alive():
-            if not self.__has_enough_client_connections() and not self.__has_server_connection():
-                await self.__find_new_connections()
-            await asyncio.sleep(settings.peer_ping_time_seconds)
+            if self.__has_server_connection():
+                await asyncio.sleep(settings.peer_ping_time_seconds)
+                continue
+            if self.__has_enough_client_connections():
+                await asyncio.sleep(settings.peer_ping_time_seconds)
+                continue
+            self.__find_new_connections()
 
     def __has_enough_client_connections(self):
         logger.info('')
         return self.net_pool.has_enough_connections()
 
     def __has_server_connection(self):
+        logger.info('')
         return len(self.net_pool.get_server_connections()) > 0
 
-    async def __find_new_connections(self):
+    def __find_new_connections(self):
         logger.info('')
         if self.net_pool.swarm_status_stable() and self.net_pool.has_client_connection():
-            await self.__connect_via_client()
+            self.__connect_via_client()
         else:
-            await self.__connect_via_server()
+            self.__connect_via_server()
 
-    async def __connect_via_client(self):
+    def __connect_via_client(self):
         connection = self.net_pool.get_random_client_connection()
-        if not connection is None:
-            self.handler.do_swarm_peer_request(connection)
-        if self.__has_server_connection():
-            return
+        self.handler.do_swarm_peer_request(connection)
 
-    async def __connect_via_server(self):
+    def __connect_via_server(self):
         logger.info('')
         server_data = Peers().get_random_server_from_file()
-        if not server_data is None:
-            await self.__do_swarm_peer_request_to_server(server_data)
+        if server_data:
+            self.__do_swarm_peer_request_to_server(server_data)
+            return
+        raise Exception('Error: no server data in peers.json file')
 
-    async def __do_swarm_peer_request_to_server(self, server_data):
+    def __do_swarm_peer_request_to_server(self, server_data):
         logger.info('')
         server_protocol = server_data['protocol']
         if server_protocol == 'udp':
-            await self.__udp_swarm_peer_request_to_server(server_data)
+            self.__udp_swarm_peer_request_to_server(server_data)
         else:
             raise Exception('Error: {} protocol handler not implemented yet'.format(server_protocol))
 
-    async def __udp_swarm_peer_request_to_server(self, server_data):
+    def __udp_swarm_peer_request_to_server(self, server_data):
         logger.info('')
-        # connection = await self.create_endpoint(
-        #     remote_addr=(server_data['host'], server_data['port']))
         connection = self.listener.copy()
         connection.set_remote_addr((server_data['host'], server_data['port']))
         connection.set_fingerprint(server_data['fingerprint'])
         connection.set_type(server_data['type'])
+        self.net_pool.save_connection(connection)
         connection.send(self.handler(self.protocol).swarm_peer_request(receiver_connection=connection))

@@ -36,9 +36,7 @@ class Handler:
         self.__handle(connection)
 
     def connection_lost(self, remote_addr):
-        connection = Connection()
-        connection.set_remote_addr(remote_addr)
-        self.net_pool.disconnect(connection)
+        logger.info('')
 
     def make_connection(self, remote_host, remote_port):
         connection = Connection(transport=self.transport, remote_addr=(remote_host, remote_port))
