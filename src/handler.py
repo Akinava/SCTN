@@ -15,11 +15,13 @@ from utilit import encode
 
 
 class Handler:
-    def __init__(self, protocol, message=None):
+    def __init__(self, protocol, message=None, on_con_lost=None, connection=None):
         logger.info('')
         self.net_pool = NetPool()
         self.crypt_tools = CryptTools()
         self.response = message
+        self.__on_con_lost = on_con_lost
+        self.connection = connection
         self.transport = None
         self.protocol = protocol
         self.parser = Parser(protocol)
@@ -30,10 +32,11 @@ class Handler:
 
     def datagram_received(self, request, remote_addr):
         logger.info('request %s from %s' % (request, remote_addr))
-        connection = Connection()
-        connection.datagram_received(request, remote_addr, self.transport)
-        self.net_pool.save_connection(connection)
-        self.__handle(connection)
+        self.connection = Connection()
+        self.connection.datagram_received(request, remote_addr, self.transport)
+        self.net_pool.save_connection(self.connection)
+        self.parser.set_connection(self.connection)
+        self.__handle()
 
     def connection_lost(self, remote_addr):
         logger.info('')
@@ -51,10 +54,10 @@ class Handler:
         logger.debug('')
         # TODO make a tread
         package_protocol = self.__define_package()
-        self.parser.set_package_protocol(package_protocol)
-        logger.info('GeneralProtocol function defined as {}'.format(package_protocol['name']))
+        logger.info('GeneralProtocol package define as {}'.format(package_protocol['name']))
         if package_protocol is None:
             return
+        self.parser.set_package_protocol(package_protocol)
         response_function = self.__get_response_function(package_protocol)
         return response_function()
 
@@ -75,12 +78,11 @@ class Handler:
 
     def __get_define_protocol_functions(self, package_protocol):
         define_protocol_functions = package_protocol['define']
-        if isintance(define_protocol_functions, list):
+        if isinstance(define_protocol_functions, list):
             return define_protocol_functions
         return [define_protocol_functions]
 
     def __get_response_function(self, request_protocol):
-        logger.info('GeneralProtocol response_name {}'.format(request_protocol['name']))
         response_function_name = request_protocol.get('response')
         if response_function_name in None:
             logger.info('GeneralProtocol no response_function_name')
@@ -99,10 +101,10 @@ class Handler:
             message += build_part_message_function(**kwargs)
         return message
 
-    def define_swarm_ping(self, connection):
-        if connection.get_request() == msg_ping:
+    def define_swarm_ping(self, **kwarg):
+        if self.connection.get_request() == b'':
             return True
         return False
 
-    def do_swarm_ping(self, connection):
-        connection.send(b'')
+    def swarm_ping(self):
+        self.connection.send(b'')

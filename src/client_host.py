@@ -26,9 +26,9 @@ class Client(UDPHost):
     async def run(self):
         logger.info('')
         self.listener = await self.create_endpoint(local_addr=(settings.local_host, settings.default_port))
-        client_task = asyncio.create_task(self.__serve_swarm())
-        ping_task = asyncio.create_task(self.serve_forever())
-        await client_task
+        swarm_task = asyncio.create_task(self.__serve_swarm())
+        ping_task = asyncio.create_task(self.ping())
+        await swarm_task
         await ping_task
 
     def __extend_protocol(self, protocol):

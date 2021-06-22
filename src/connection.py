@@ -29,7 +29,7 @@ class Connection:
             self.set_remote_addr(remote_addr)
         if transport:
             self.__set_transport(transport)
-        self.__set_last_request()
+        self.__set_time_received_message()
 
     def __str__(self):
         return '{}:{}'.format(self.__remote_host, self.__remote_port)
@@ -55,20 +55,19 @@ class Connection:
             return False
         return True
 
-    def __last_send_made_over_peer_timeout_but_has_no_request(self):
-        return time() - self.__last_response > settings.peer_timeout_seconds
+    def last_received_message_is_over_time_out(self):
+        return time() - self.__received_message_time > settings.peer_timeout_seconds
 
-    def last_request_is_time_out(self):
-        return time() - self.__last_request > settings.peer_timeout_seconds
+    def last_sent_message_is_over_ping_time(self):
+        if not hasattr(self, '__sent_message_time'):
+            return True
+        return time() - self.__sent_message_time > settings.peer_ping_time_seconds
 
-    def last_response_is_over_ping_time(self):
-        return time() - self.__last_response > settings.peer_ping_time_seconds
+    def __set_time_sent_message(self):
+        self.__sent_message_time = time()
 
-    def __set_last_response(self):
-        self.__last_response = time()
-
-    def __set_last_request(self):
-        self.__last_request = time()
+    def __set_time_received_message(self):
+        self.__received_message_time = time()
 
     def __set_transport(self, transport):
         self.transport = transport
@@ -105,7 +104,7 @@ class Connection:
 
     def update_request(self, connection):
         self.__request = connection.get_request()
-        self.__set_last_request()
+        self.__set_received_message_time()
 
     def set_fingerprint(self, fingerprint):
         self.fingerprint = fingerprint
@@ -127,7 +126,7 @@ class Connection:
     def send(self, response):
         logger.info('send %s to %s' % (encode(response).hex(), self.__get_remote_addr()))
         self.transport.sendto(encode(response), self.__get_remote_addr())
-        self.__set_last_response()
+        self.__set_time_sent_message()
 
     def shutdown(self):
         if self.transport.is_closing():
@@ -143,7 +142,7 @@ class NetPool(Singleton):
     def __clean_groups(self):
         alive_group_tmp = []
         for connection in self.__group:
-            if connection.last_request_is_time_out() is True:
+            if connection.last_received_message_is_over_time_out() is True:
                 logger.debug('host {} disconnected bt timeout'.format(connection))
                 continue
             self.__mark_connection_type(connection)

@@ -45,7 +45,7 @@ class UDPHost:
             transport=transport)
         return connection
 
-    async def serve_forever(self):
+    async def ping(self):
         logger.info('')
         while self.listener.is_alive():
             self.__ping_connections()
@@ -53,8 +53,9 @@ class UDPHost:
 
     def __ping_connections(self):
         for connection in self.net_pool.get_all_connections():
-            if connection.last_response_is_over_ping_time():
-                self.handler.do_swarm_ping(connection)
+            if connection.last_sent_message_is_over_ping_time():
+                logger.debug('send ping to {}'.format(connection))
+                self.handler(connection=connection, protocol=self.protocol).swarm_ping()
 
     def __shutdown_connections(self):
         self.net_pool.shutdown()
