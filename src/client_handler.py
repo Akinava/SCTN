@@ -11,6 +11,45 @@ import settings
 
 
 class ClientHandler(Handler):
+    def verify_len_swarm_peer_request(self, **kwargs):
+        request_length = len(self.connection.get_request())
+        required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
+        return required_length == request_length
+
+    def verify_protocol_version(self, **kwargs):
+        request_major_version_marker = self.parser.get_part('major_version_marker', kwargs['package_protocol'])
+        request_minor_version_marker = self.parser.get_part('minor_version_marker', kwargs['package_protocol'])
+        my_major_version_marker, my_minor_version_marker = self.protocol['client_protocol_version']
+        return my_major_version_marker >= request_major_version_marker \
+               and my_minor_version_marker >= request_minor_version_marker
+
+    def verify_len_swarm_peer(self, **kwargs):
+        # FIXME
+        return False
+
+    def verify_len_sstn_request(self, **kwargs):
+        # FIXME
+        return False
+
+    def verify_len_sstn_list(self, **kwargs):
+        # FIXME
+        return False
+
+    def verify_package_id_marker(self, **kwargs):
+        package_protocol = kwargs['package_protocol']
+        request_id_marker = self.parser.get_part('package_id_marker')
+        required_id_marker = package_protocol['package_id_marker']
+        return request_id_marker == required_id_marker
+
+    def verify_timestamp(self, **kwargs):
+        timestamp = self.parser.get_part('timestamp')
+        return time() - settings.peer_ping_time_seconds < timestamp < time() + settings.peer_ping_time_seconds
+
+    def verify_receiver_fingerprint(self, **kwargs):
+        my_fingerprint_from_request = self.parser.get_part('receiver_fingerprint')
+        my_fingerprint_reference = self.crypt_tools.get_fingerprint()
+        return my_fingerprint_from_request == my_fingerprint_reference
+
     def swarm_peer_request(self, **kwargs):
         return self.make_message(
             package_name='swarm_peer_request',

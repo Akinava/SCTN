@@ -45,10 +45,10 @@ class Client(UDPHost):
         logger.info('')
         while self.listener.is_alive():
             if self.__has_server_connection():
-                await asyncio.sleep(settings.peer_ping_time_seconds)
+                await asyncio.sleep(settings.peer_timeout_seconds)
                 continue
             if self.__has_enough_client_connections():
-                await asyncio.sleep(settings.peer_ping_time_seconds)
+                await asyncio.sleep(settings.peer_timeout_seconds)
                 continue
             self.__find_new_connections()
 

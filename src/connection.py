@@ -104,7 +104,7 @@ class Connection:
 
     def update_request(self, connection):
         self.__request = connection.get_request()
-        self.__set_received_message_time()
+        self.__set_time_received_message()
 
     def set_fingerprint(self, fingerprint):
         self.fingerprint = fingerprint
@@ -124,7 +124,6 @@ class Connection:
         return (self.__remote_host, self.__remote_port)
 
     def send(self, response):
-        logger.info('send %s to %s' % (encode(response).hex(), self.__get_remote_addr()))
         self.transport.sendto(encode(response), self.__get_remote_addr())
         self.__set_time_sent_message()
 

@@ -49,13 +49,14 @@ class Handler:
         logger.info('')
         self.do_test_peer_hello()
 
-    def verify_test_peer_hello_package_len(self, package_protocol):
+    def verify_test_peer_hello_package_len(self, **kwargs):
         logger.info('')
         request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_requared_length()
+        required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
         return required_length == request_length
 
-    def verify_package_id_marker(self, package_protocol):
+    def verify_package_id_marker(self, **kwargs):
+        package_protocol = kwargs['package_protocol']
         request_id_marker = self.parser.get_part('package_id_marker')
         required_id_marker = package_protocol['package_id_marker']
         return request_id_marker == required_id_marker

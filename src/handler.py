@@ -63,20 +63,20 @@ class Handler:
 
     def __define_package(self):
         logger.debug('')
-        for package_protocol in self.protocol['package']:
-            if self.__define_request(package_protocol):
+        for package_protocol in self.protocol['packages'].values():
+            if self.__define_request(package_protocol=package_protocol):
                 return package_protocol
         logger.warn('GeneralProtocol can not define request')
 
     def __define_request(self, package_protocol):
-        define_protocol_functions = self.__get_define_protocol_functions(package_protocol)
+        define_protocol_functions = self.__get_functions_for_define_protocol(package_protocol)
         for define_func_name in define_protocol_functions:
             define_func = getattr(self, define_func_name)
-            if not define_func(package_protocol) is True:
+            if not define_func(package_protocol=package_protocol) is True:
                 return False
         return True
 
-    def __get_define_protocol_functions(self, package_protocol):
+    def __get_functions_for_define_protocol(self, package_protocol):
         define_protocol_functions = package_protocol['define']
         if isinstance(define_protocol_functions, list):
             return define_protocol_functions
@@ -101,10 +101,10 @@ class Handler:
             message += build_part_message_function(**kwargs)
         return message
 
-    def define_swarm_ping(self, **kwarg):
-        if self.connection.get_request() == b'':
-            return True
-        return False
+    def define_swarm_ping(self, **kwargs):
+        request_length = len(self.connection.get_request())
+        required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
+        return required_length == request_length
 
     def swarm_ping(self):
-        self.connection.send(b'')
+        self.connection.send(self.parser.pack_timestemp())

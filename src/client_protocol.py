@@ -15,7 +15,9 @@ PROTOCOL = {
     'packages': {
         'swarm_ping': {
             'name': 'swarm_ping',
-            'define': 'define_swarm_ping'},
+            'define': 'define_swarm_ping',
+            'structure': [
+                {'name': 'swarm_ping', 'length': 4}]},
         'swarm_peer_request': {
             'name': 'swarm_peer_request',
             'package_id_marker': 1,

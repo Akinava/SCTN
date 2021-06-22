@@ -56,8 +56,9 @@ class Parser:
     def pack_bool(self, part_data):
         return b'\x01' if part_data else b'\x00'
 
-    def get_part(self, name):
-        return self.unpack(self.connection, self.package_protocol).get(name, NULL())
+    def get_part(self, name, package_protocol=None):
+        self.set_package_protocol(package_protocol)
+        return self.unpack_package().get(name, NULL())
 
     def calc_requared_length(self, package_protocol):
         length = 0
