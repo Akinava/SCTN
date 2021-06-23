@@ -153,7 +153,7 @@ class NetPool(Singleton):
             return True
         return False
 
-    def __set_swarm_connection_status(self):
+    def __update_swarm_connection_status(self):
         if hasattr(self, '__swarm_stable'):
             return
         if self.has_enough_connections():
@@ -167,15 +167,22 @@ class NetPool(Singleton):
         if not hasattr(connection, 'type'):
             connection.type = 'client'
 
-    def save_connection(self, new_connection):
+    def save_connection(self, connection):
         logger.info('NetPool')
-        if not new_connection in self.__group:
-            self.__group.append(new_connection)
+        if connection in self.__group:
+            self.__update_connection_in_group(connection)
             return
-        connection_index = self.__group.index(new_connection)
+        self.__put_connection_in_group(connection)
+        if connection.type == 'client':
+            self.__update_swarm_connection_status()
+
+    def __update_connection_in_group(self, connection):
+        connection_index = self.__group.index(connection)
         old_connection = self.__group[connection_index]
-        old_connection.update_request(new_connection)
-        self.__set_swarm_connection_status()
+        old_connection.update_request(connection)
+
+    def __put_connection_in_group(self, connection):
+        self.__group.append(connection)
 
     def get_all_connections(self):
         self.__clean_groups()

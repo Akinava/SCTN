@@ -31,7 +31,7 @@ class Handler:
         self.transport = transport
 
     def datagram_received(self, request, remote_addr):
-        logger.info('request %s from %s' % (request, remote_addr))
+        logger.info('request %s from %s' % (request.hex(), remote_addr))
         self.connection = Connection()
         self.connection.datagram_received(request, remote_addr, self.transport)
         self.net_pool.save_connection(self.connection)
@@ -64,6 +64,7 @@ class Handler:
     def __define_package(self):
         logger.debug('')
         for package_protocol in self.protocol['packages'].values():
+            print('__define_package', package_protocol['name'])
             if self.__define_request(package_protocol=package_protocol):
                 return package_protocol
         logger.warn('GeneralProtocol can not define request')
