@@ -12,3 +12,4 @@ docker start -i sctn_0
 
 # run server local
 python3 test/test_peer.py -c docker/config.json -p docker/peers.json -s docker/shadow
+python3 test/test_peer.py -c tmp/config.json -p tmp/peers.json -s tmp/shadow
