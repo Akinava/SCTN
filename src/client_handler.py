@@ -37,7 +37,7 @@ class ClientHandler(Handler):
 
     def verify_package_id_marker(self, **kwargs):
         package_protocol = kwargs['package_protocol']
-        request_id_marker = self.parser.get_part('package_id_marker')
+        request_id_marker = self.parser.get_part('package_id_marker', package_protocol)
         required_id_marker = package_protocol['package_id_marker']
         return request_id_marker == required_id_marker
 

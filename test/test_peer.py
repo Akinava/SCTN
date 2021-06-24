@@ -50,7 +50,6 @@ class Handler:
         self.do_test_peer_hello()
 
     def verify_test_peer_hello_package_len(self, **kwargs):
-        logger.info('')
         request_length = len(self.connection.get_request())
         required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
         return required_length == request_length

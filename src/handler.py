@@ -54,18 +54,19 @@ class Handler:
         logger.debug('')
         # TODO make a tread
         package_protocol = self.__define_package()
-        logger.info('GeneralProtocol package define as {}'.format(package_protocol['name']))
         if package_protocol is None:
             return
         self.parser.set_package_protocol(package_protocol)
         response_function = self.__get_response_function(package_protocol)
+        if response_function is None:
+            return
         return response_function()
 
     def __define_package(self):
         logger.debug('')
         for package_protocol in self.protocol['packages'].values():
-            print('__define_package', package_protocol['name'])
             if self.__define_request(package_protocol=package_protocol):
+                logger.info('GeneralProtocol package define as {}'.format(package_protocol['name']))
                 return package_protocol
         logger.warn('GeneralProtocol can not define request')
 
@@ -85,8 +86,9 @@ class Handler:
 
     def __get_response_function(self, request_protocol):
         response_function_name = request_protocol.get('response')
-        if response_function_name in None:
+        if response_function_name is None:
             logger.info('GeneralProtocol no response_function_name')
+            return
         logger.info('GeneralProtocol response_function_name {}'.format(response_function_name))
         return getattr(self, response_function_name)
 

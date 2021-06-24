@@ -62,7 +62,7 @@ class Parser:
 
     def calc_requared_length(self, package_protocol):
         length = 0
-        structure = package_protocol.get('request_protocol')
+        structure = package_protocol.get('structure')
         if structure is None:
             return length
         for part in structure:
@@ -98,7 +98,7 @@ class Parser:
         return marker_data >> left_shift
 
     def __make_mask(self, start_bit, length_bit, length_data_byte):
-        return  ((1 << length_bit) - 1) << 8 * length_data_byte - start_bit - length_bit
+        return ((1 << length_bit) - 1) << 8 * length_data_byte - start_bit - length_bit
 
     def __get_left_shift(self, start_bit, length_bit, length_data_byte):
         return length_data_byte * 8 - start_bit - length_bit
