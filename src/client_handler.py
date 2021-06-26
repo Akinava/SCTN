@@ -24,7 +24,7 @@ class ClientHandler(Handler):
                and my_minor_version_marker >= request_minor_version_marker
 
     def verify_len_swarm_peer(self, **kwargs):
-        # FIXME
+        print(vars(self.connection))
         return False
 
     def verify_len_sstn_request(self, **kwargs):
