@@ -91,7 +91,7 @@ class Client(UDPHost):
         logger.info('')
         connection = self.listener.copy()
         connection.set_remote_addr((server_data['host'], server_data['port']))
-        connection.set_fingerprint(server_data['fingerprint'])
+        connection.set_pub_key(server_data['pub_key'])
         connection.set_type(server_data['type'])
         self.net_pool.save_connection(connection)
         connection.send(self.handler(self.protocol).swarm_peer_request(receiver_connection=connection))

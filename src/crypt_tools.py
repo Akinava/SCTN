@@ -26,10 +26,10 @@ class Tools(Singleton):
 
     def init_ecdsa(self):
         logger.info('')
-        if self.get_ecdsa_from_file():
-            return
-        self.generate_new_ecdsa()
-        self.save_ecdsa()
+        if not self.get_ecdsa_from_file():
+            self.generate_new_ecdsa()
+            self.save_ecdsa()
+        self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
 
     def read_shadow_file(self):
         logger.info('')
@@ -74,17 +74,15 @@ class Tools(Singleton):
         logger.info('')
         ecdsa_priv_key = self.ecdsa.get_priv_key()
         ecdsa_priv_key_b58 = B58().pack(ecdsa_priv_key)
-        fingerprint_b58 = B58().pack(self.get_fingerprint())
+        ecdsa_pub_key = self.ecdsa.get_pub_key()
+        ecdsa_pub_key_b58 = B58().pack(ecdsa_pub_key)
         self.update_shadow_file(
             {'ecdsa': {
                 'key': ecdsa_priv_key_b58,
-                'fingerprint': fingerprint_b58}}
+                'pub_key': ecdsa_pub_key_b58}}
         )
 
     def get_fingerprint(self):
-        logger.info('')
-        if not hasattr(self, 'fingerprint'):
-            self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
         return self.fingerprint
 
     def get_open_key(self):
@@ -94,7 +92,7 @@ class Tools(Singleton):
         return sha256(open_key)
 
     def sign_message(self, message):
-        return message + self.ecdsa.sign(message) + self.ecdsa.get_pub_key()
+        return self.ecdsa.sign(message)
 
     def check_signature(self, message):
         data_length = len(message) - self.pub_key_length - self.sign_length
@@ -103,14 +101,20 @@ class Tools(Singleton):
         ecdsa_pub = ECDSA(pub_key=pub_key)
         return ecdsa_pub.check_signature(message=data, signature=sign)
 
-    def unpack_peers_fingerprint(self, peers_list):
-        for peer_index in range(len(peers_list)):
-            peer = peers_list[peer_index]
-            peer['fingerprint'] = B58().unpack(peer['fingerprint'])
-        return peers_list
+    def unpack_peer_data(self, peer):
+        peer['pub_key'] = B58().unpack(peer['pub_key'])
 
-    def pack_peers_fingerprint(self, peers_list):
-        for peer_index in range(len(peers_list)):
-            peer = peers_list[peer_index]
-            peer['fingerprint'] = B58().pack(peer['fingerprint'])
-        return peers_list
+    def pack_peer_data(self, peer):
+        peer['pub_key'] = B58().pack(peer['pub_key'])
+
+    def handle_encryption(self, connection):
+        if not self.is_encrupted(connection):
+            return
+        # TODO decrypt it
+
+    def is_encrupted(self, connection):
+        if len(connection.get_request() <= AES.bs):
+            return False
+        if self.fingerprint in connection.get_request():
+            return False
+        return True

@@ -106,8 +106,9 @@ class Connection:
         self.__request = connection.get_request()
         self.__set_time_received_message()
 
-    def set_fingerprint(self, fingerprint):
-        self.fingerprint = fingerprint
+    def set_pub_key(self, pub_key):
+        self.__pub_key = pub_key
+        self.fingerprint = CryptTools().make_fingerprint(self.__pub_key)
 
     def get_fingerprint(self):
         return self.fingerprint
@@ -237,7 +238,6 @@ class Peers(Singleton):
         logger.info('')
         server = self.__find_peer({
             'type': 'server',
-            'fingerprint': connection.get_fingerprint(),
             'host': connection.get_remote_host(),
             'port': connection.get_remote_port()})
         if isinstance(server, dict):
@@ -264,7 +264,7 @@ class Peers(Singleton):
             server = self.__find_peer({
                 'protocol': server_data['protocol'],
                 'type': 'server',
-                'fingerprint': server_data['fingerprint'],
+                'pub_key': server_data['pub_key'],
                 'host': server_data['host'],
                 'port': server_data['port']})
             if server is None:
@@ -283,8 +283,8 @@ class Peers(Singleton):
         return filtered_list
 
     def __load(self):
-        peers = self.__read_file()
-        self.__peers = self.__unpack_peers_fingerprint(peers)
+        self.__peers = self.__read_file()
+        self.__unpack_peers_data()
 
     def __save(self):
         peers = self.__pack_peers_fingerprint(self.__peers)
@@ -299,13 +299,16 @@ class Peers(Singleton):
         with open(settings.peers_file, 'w') as f:
             f.write(json.dumps(data, indent=4))
 
-    def __unpack_peers_fingerprint(self, peers):
+    def __unpack_peers_data(self):
         logger.info('')
-        return CryptTools().unpack_peers_fingerprint(peers)
+        for peer_index in range(len(self.__peers)):
+            CryptTools().unpack_peer_data(self.__peers[peer_index])
 
     def __pack_peers_fingerprint(self, peers):
         logger.info('')
-        return CryptTools().pack_peers_fingerprint(peers)
+        for peer_index in range(len(self.__peers)):
+            CryptTools().pack_peer_data(self.__peers[peer_index])
+
 
     def __filter_peers_by_type(self, peers_filter):
         logger.info('')
