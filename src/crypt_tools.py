@@ -107,14 +107,18 @@ class Tools(Singleton):
     def pack_peer_data(self, peer):
         peer['pub_key'] = B58().pack(peer['pub_key'])
 
-    def handle_encryption(self, connection):
-        if not self.is_encrupted(connection):
+    def unpack_encryption(self, connection):
+        if not self.__is_encrupted(connection):
             return
-        # TODO decrypt it
+        self.__decrypt_request(connection)
 
-    def is_encrupted(self, connection):
+    def __is_encrupted(self, connection):
         if len(connection.get_request() <= AES.bs):
             return False
         if self.fingerprint in connection.get_request():
             return False
         return True
+
+    def __decrypt_request(self, connection):
+        pub_key = connection.get_pub_key()
+

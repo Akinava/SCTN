@@ -36,7 +36,7 @@ class Handler:
         self.connection.datagram_received(request, remote_addr, self.transport)
         self.net_pool.save_connection(self.connection)
         self.parser.set_connection(self.connection)
-        self.crypt_tools.handle_encryption(self.connection)
+        self.crypt_tools.unpack_encryption(self.connection)
         self.__handle()
 
     def connection_lost(self, remote_addr):
