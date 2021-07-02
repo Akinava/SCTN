@@ -10,6 +10,9 @@ docker run -it sctn:v0
 # start container interactive
 docker start -i sctn_0
 
-# run server local
+# run client local
 python3 test/test_peer.py -p docker/peers.json -c docker/config.json -s docker/shadow
 python3 test/test_peer.py -p docker/peers.json -c tmp/config.json  -s tmp/shadow
+
+# run server local
+python3 src/server_host.py -c docker/config.json -s docker/shadow

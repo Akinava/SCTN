@@ -67,13 +67,12 @@ class Handler:
     def get_peer_time(self, **kwarg):
         return now()
 
-    # def get_package_id_marker(self, **kwarg):
-    #     marker = self.parser.find_protocol_package(kwargs['package_name'])['package_id_marker']
-    #     return self.parser.pack_int(marker, 1)
-
 
 if __name__ == '__main__':
     logger.info('test client start')
     test_client = Client(handler=Handler, protocol=PROTOCOL)
-    asyncio.run(test_client.run())
+    try:
+        asyncio.run(test_client.run())
+    except KeyboardInterrupt:
+        logger.info('test client interrupted')
     logger.info('test client shutdown')

@@ -10,7 +10,8 @@ import asyncio
 import signal
 import settings
 from settings import logger
-from connection import NetPool, Connection
+from connection import Connection
+from net_pool import NetPool
 import utilit
 
 
@@ -32,22 +33,22 @@ class UDPHost:
         if signum == signal.SIGUSR1:
             self.__config_reload()
 
-    async def create_endpoint(self, remote_addr=None, local_addr=None):
-        logger.info('local_addr {}, remote_addr {}'.format(local_addr, remote_addr))
+    async def create_listener(self, local_addr):
+        logger.info('local_addr {}'.format(local_addr))
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: self.handler(self.protocol),
-            local_addr=local_addr,
+            local_addr=local_addr)
+        return transport
+
+    def create_connection(self, remote_addr):
+        return Connection(
+            transport=self.listener,
             remote_addr=remote_addr)
-        connection = Connection(
-            local_addr=local_addr,
-            remote_addr=remote_addr,
-            transport=transport)
-        return connection
 
     async def ping(self):
         logger.info('')
-        while self.listener.is_alive():
+        while not self.listener.is_closing():
             self.__ping_connections()
             await asyncio.sleep(settings.peer_ping_time_seconds)
 

@@ -12,7 +12,7 @@ import settings
 from host import UDPHost
 from client_handler import ClientHandler
 from client_protocol import PROTOCOL as ClientProtocol
-from connection import Peers, Connection
+from peers import Peers
 from utilit import update_obj
 
 
@@ -25,7 +25,9 @@ class Client(UDPHost):
 
     async def run(self):
         logger.info('')
-        self.listener = await self.create_endpoint(local_addr=(settings.local_host, settings.default_port))
+        self.listener = await self.create_listener(
+            (settings.local_host,
+             settings.default_port))
         swarm_task = asyncio.create_task(self.__serve_swarm())
         ping_task = asyncio.create_task(self.ping())
         await swarm_task
@@ -43,11 +45,11 @@ class Client(UDPHost):
 
     async def __serve_swarm(self):
         logger.info('')
-        while self.listener.is_alive():
-            if self.__has_server_connection():
+        while not self.listener.is_closing():
+            if self.__has_enough_client_connections():
                 await asyncio.sleep(settings.peer_timeout_seconds)
                 continue
-            if self.__has_enough_client_connections():
+            if self.__has_server_connection():
                 await asyncio.sleep(settings.peer_timeout_seconds)
                 continue
             self.__find_new_connections()
@@ -62,7 +64,7 @@ class Client(UDPHost):
 
     def __find_new_connections(self):
         logger.info('')
-        if self.net_pool.swarm_status_stable() and self.net_pool.has_client_connection():
+        if self.net_pool.has_client_connection():
             self.__connect_via_client()
         else:
             self.__connect_via_server()
@@ -89,9 +91,9 @@ class Client(UDPHost):
 
     def __udp_swarm_peer_request_to_server(self, server_data):
         logger.info('')
-        connection = self.listener.copy()
-        connection.set_remote_addr((server_data['host'], server_data['port']))
+        connection = self.create_connection((server_data['host'], server_data['port']))
         connection.set_pub_key(server_data['pub_key'])
         connection.set_type(server_data['type'])
-        self.net_pool.save_connection(connection)
-        connection.send(self.handler(self.protocol).swarm_peer_request(receiver_connection=connection))
+        handler_init = self.handler(self.protocol)
+        peer_request_message = handler_init.swarm_peer_request(receiver_connection=connection)
+        connection.send(peer_request_message)

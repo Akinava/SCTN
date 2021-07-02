@@ -6,10 +6,10 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
-import sys
 from settings import logger
 from crypt_tools import Tools as CryptTools
-from connection import Connection, NetPool
+from connection import Connection
+from net_pool import NetPool
 from package_parser import Parser
 from utilit import encode
 
@@ -32,11 +32,13 @@ class Handler:
 
     def datagram_received(self, request, remote_addr):
         logger.info('%s from %s' % (request.hex(), remote_addr))
-        self.connection = Connection()
-        self.connection.datagram_received(request, remote_addr, self.transport)
-        self.net_pool.save_connection(self.connection)
+        self.connection = Connection(
+            remote_addr=remote_addr,
+            transport=self.transport,
+            request=request
+        )
         self.parser.set_connection(self.connection)
-        self.crypt_tools.unpack_encryption(self.connection)
+        self.crypt_tools.unpack_datagram(self.connection)
         self.__handle()
 
     def connection_lost(self, remote_addr):

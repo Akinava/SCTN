@@ -101,24 +101,36 @@ class Tools(Singleton):
         ecdsa_pub = ECDSA(pub_key=pub_key)
         return ecdsa_pub.check_signature(message=data, signature=sign)
 
-    def unpack_peer_data(self, peer):
-        peer['pub_key'] = B58().unpack(peer['pub_key'])
+    def get_shared_key_ecdh(self, remote_pub_key):
+        return self.ecdh.get_shared_key(remote_pub_key)
 
-    def pack_peer_data(self, peer):
-        peer['pub_key'] = B58().pack(peer['pub_key'])
+    def aes_encode(self, key, message):
+        return AES(key).encode(message)
 
-    def unpack_encryption(self, connection):
+    def aes_decode(self, key, message):
+        return AES(key).decode(message)
+
+    def encrypt_message(self, message, remote_pub_key):
+        sharedsecret = self.get_shared_key_ecdh(remote_pub_key)
+        return self.aes_encode(sharedsecret, message)
+
+    def sign_message(self, message):
+        return self.ecdsa.sign(message)
+
+    def unpack_datagram(self, connection):
         if not self.__is_encrupted(connection):
             return
         self.__decrypt_request(connection)
 
     def __is_encrupted(self, connection):
-        if len(connection.get_request() <= AES.bs):
+        if len(connection.get_request()) <= AES.bs:
             return False
         if self.fingerprint in connection.get_request():
             return False
         return True
 
     def __decrypt_request(self, connection):
-        pub_key = connection.get_pub_key()
-
+        shared_key = self.get_shared_key_ecdh(connection.get_pub_key())
+        datagram = self.aes_decode(shared_key, connection.get_request())
+        logger.info('%s' % (datagram.hex()))
+        connection.set_request(datagram)
