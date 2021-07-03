@@ -134,3 +134,14 @@ class Tools(Singleton):
         datagram = self.aes_decode(shared_key, connection.get_request())
         logger.info('%s' % (datagram.hex()))
         connection.set_request(datagram)
+
+    def encrypt_message(self, **kwargs):
+        package_protocol = kwargs['package_protocol']
+        connection = kwargs['connection']
+        message = kwargs['message']
+        if package_protocol['encrypted'] is False and package_protocol['signed'] is False:
+            return message
+        if connection.get_encrypt_marker() is True and package_protocol['encrypted'] is True:
+            return self.encrypt_message(message, connection.get_pub_key())
+        if package_protocol['signed'] is True or package_protocol['encrypted'] is True:
+            return self.sign_message(message)
