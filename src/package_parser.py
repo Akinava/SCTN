@@ -19,8 +19,55 @@ class Parser:
         8: 'Q',
     }
     struct_addr = '>BBBBH'
+
     def __init__(self, protocol):
         self.__protocol = protocol
+
+    @classmethod
+    def get_packed_addr_length(cls):
+        return struct.calcsize(cls.struct_addr)
+
+    @classmethod
+    def recovery_contraction(cls, protocol):
+        def get_define_name_list(package_protocol):
+            return package_protocol['define']
+
+        def get_structure_name_list(package_protocol):
+            structure = package_protocol.get('structure')
+            return [part['name'] for part in structure]
+
+        def recovery_contraction_name(place, contraction_items, items):
+            return items[: place] + contraction_items['structure'] + items[place+1: ]
+
+        def recovery_define(package_protocol, found_define_contraction):
+            for contraction_name in found_define_contraction:
+                place = package_protocol['define'].index(contraction_name)
+                contraction = protocol['contraction'][contraction_name]
+                package_define = package_protocol['define']
+                package_protocol['define'] = recovery_contraction_name(place, contraction, package_define)
+
+        def recovery_structure(package_protocol, found_structure_contraction):
+            structure_name_list = get_structure_name_list(package_protocol)
+            for contraction_name in found_structure_contraction:
+                place = structure_name_list.index(contraction_name)
+                contraction = protocol['contraction'][contraction_name]
+                package_structure = package_protocol['structure']
+                package_protocol['structure'] = recovery_contraction_name(place, contraction, package_structure)
+
+        contractions_name = protocol['contraction'].keys()
+
+        for package_protocol in protocol['packages'].values():
+            define_name_list = get_define_name_list(package_protocol)
+            found_define_contraction = set(contractions_name) & set(define_name_list)
+            if found_define_contraction:
+                recovery_define(package_protocol, found_define_contraction)
+
+            structure_name_list = get_structure_name_list(package_protocol)
+            found_structure_contraction = set(contractions_name) & set(structure_name_list)
+            if structure_name_list:
+                recovery_structure(package_protocol, found_structure_contraction)
+
+        return protocol
 
     def set_package_protocol(self, package_protocol):
         self.package_protocol = package_protocol
@@ -56,18 +103,33 @@ class Parser:
     def pack_bool(self, part_data):
         return b'\x01' if part_data else b'\x00'
 
-    def get_part(self, name, package_protocol=None):
-        self.set_package_protocol(package_protocol)
+    def get_part(self, name):
         return self.unpack_package().get(name, NULL())
 
-    def calc_requared_length(self, package_protocol):
-        length = 0
-        structure = package_protocol.get('structure')
+    def calc_structure_length(self, structure=None):
         if structure is None:
-            return length
+            structure = self.package_protocol['structure']
+        length = 0
         for part in structure:
+            if part.get('type') == 'contraction':
+                length += self.calc_contraction_length(part['name'])
+                continue
+            if part.get('type') == 'list':
+                 length += self.calc_list_length(part['name'], length)
+                 continue
             length += part['length']
         return length
+
+    def calc_contraction_length(self, contraction_name):
+        contraction_structure = self.__protocol['contraction'][contraction_name]['structure']
+        return self.calc_structure_length(structure=contraction_structure)
+
+    def calc_list_length(self, list_name, skip_bytes):
+        data = self.connection.get_request()[skip_bytes:]
+        size, _ = self.unpack_size(data)
+        list_structure = self.__protocol['lists'][list_name]['structure']
+        list_structure_length = self.calc_structure_length(structure=list_structure)
+        return size * list_structure_length
 
     def pack_addr(self, addr):
         host, port = addr
@@ -79,6 +141,11 @@ class Parser:
 
     def pack_timestemp(self):
         return self.pack_int(int(time.time()), 4)
+
+    def unpack_markers(self, **kwargs):
+        if not isinstance(kwargs['part_name'], tuple):
+            return self.unpack_single_marker(kwargs['part_name'], kwargs['part_data'])
+        return self.unpack_multiple_marker(kwargs['part_name'], kwargs['part_data'])
 
     def __unpack_markers(self, part_name, package):
         if not isinstance(part_name, tuple):
@@ -117,3 +184,15 @@ class Parser:
 
     def __unpack_stream(self, data, length):
         return data[ :length], data[length: ]
+
+    def unpack_size(self, data):
+        size = self.unpack_int(data[0])
+        data = data[1:]
+        if size <= 0xfc:
+            return size, data
+        if size == 0xfd:
+            return self.unpack_int(data[:2]), data[2:]
+        if size == 0xfe:
+            return self.unpack_int(data[:4]), data[4:]
+        if size == 0xff:
+            return self.unpack_int(data[:8]), data[8:]

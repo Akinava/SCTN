@@ -15,7 +15,9 @@ PROTOCOL = {
     'packages': {
         'swarm_ping': {
             'name': 'swarm_ping',
-            'define': 'define_swarm_ping',
+            'define': [
+                'verify_package_length',
+                'define_swarm_ping'],
             'encrypted': False,
             'signed': False,
             'structure': [
@@ -24,7 +26,7 @@ PROTOCOL = {
             'name': 'swarm_peer_request',
             'package_id_marker': 1,
             'define': [
-                'verify_len_swarm_peer_request',
+                'verify_package_length',
                 'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'encrypted': False,
             'signed': False,
@@ -39,7 +41,7 @@ PROTOCOL = {
             'name': 'swarm_peer',
             'package_id_marker': 2,
             'define': [
-                'verify_len_swarm_peer',
+                'verify_package_length',
                 'ctr_verify_ver_id_marker_timestamp_receiver_fingerprint'],
             'encrypted': True,
             'signed': True,

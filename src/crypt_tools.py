@@ -29,7 +29,11 @@ class Tools(Singleton):
         if not self.get_ecdsa_from_file():
             self.generate_new_ecdsa()
             self.save_ecdsa()
+        self.init_ecdh()
         self.fingerprint = self.make_fingerprint(self.ecdsa.get_pub_key())
+
+    def init_ecdh(self):
+        self.ecdh = ECDH(self.ecdsa.get_priv_key())
 
     def read_shadow_file(self):
         logger.info('')

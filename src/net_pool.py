@@ -6,6 +6,7 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
+import random
 from utilit import Singleton
 from settings import logger
 import settings
@@ -20,9 +21,8 @@ class NetPool(Singleton):
         alive_group_tmp = []
         for connection in self.__group:
             if connection.last_received_message_is_over_time_out() is True:
-                logger.debug('host {} disconnected bt timeout'.format(connection))
+                logger.debug('host {} disconnected by timeout'.format(connection))
                 continue
-            self.__mark_connection_type(connection)
             alive_group_tmp.append(connection)
         self.__group = alive_group_tmp
 
@@ -30,17 +30,12 @@ class NetPool(Singleton):
         logger.info('NetPool')
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
-    def __mark_connection_type(self, connection):
-        if not hasattr(connection, 'type'):
-            connection.set_type('client')
-
     def save_connection(self, connection):
-        logger.info('NetPool')
+        logger.info('')
         if connection in self.__group:
             self.__update_connection_in_group(connection)
         else:
             self.__put_connection_in_group(connection)
-        return connection
 
     def __update_connection_in_group(self, new_connection):
         connection_index = self.__group.index(new_connection)
@@ -50,6 +45,9 @@ class NetPool(Singleton):
 
     def __copy_connection_property(self, new_connection, old_connection):
         new_connection.set_pub_key(old_connection.get_pub_key())
+        new_connection.set_encrypt_marker(old_connection.get_encrypt_marker())
+        new_connection.set_time_sent_message(old_connection.get_time_sent_message())
+        new_connection.type = old_connection.type
 
     def __put_connection_in_group(self, connection):
         self.__group.append(connection)
@@ -75,13 +73,11 @@ class NetPool(Singleton):
         return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
-        logger.info('NetPool {}'.format(my_type))
+        logger.info('{}'.format(my_type))
         self.__clean_groups()
         group = []
         for connection in self.__group:
-            if not hasattr(connection, 'type'):
-                continue
-            if connection.get_type() == my_type:
+            if connection.type == my_type:
                 group.append(connection)
         return group
 

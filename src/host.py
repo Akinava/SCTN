@@ -8,10 +8,10 @@ __version__ = [0, 0]
 
 import asyncio
 import signal
-import settings
 from settings import logger
 from connection import Connection
 from net_pool import NetPool
+from package_parser import Parser
 import utilit
 
 
@@ -19,7 +19,7 @@ class UDPHost:
     def __init__(self, handler, protocol):
         logger.info('')
         self.handler = handler
-        self.protocol = protocol
+        self.protocol = Parser.recovery_contraction(protocol)
         self.net_pool = NetPool()
         self.__set_posix_handler()
 
@@ -50,16 +50,16 @@ class UDPHost:
         logger.info('')
         while not self.listener.is_closing():
             self.__ping_connections()
-            await asyncio.sleep(settings.peer_ping_time_seconds)
+            await asyncio.sleep(1)
 
     def __ping_connections(self):
-        package_protocol = self.__protocol['packages']['swarm_ping']
-        for connection in self.__net_pool.get_all_connections():
+        package_protocol = self.protocol['packages']['swarm_ping']
+        for connection in self.net_pool.get_all_connections():
             if connection.last_sent_message_is_over_ping_time():
                 logger.debug('send ping to {}'.format(connection))
-                self.__handler(
+                self.handler(
                     connection=connection,
-                    protocol=self.__protocol
+                    protocol=self.protocol
                 ).swarm_ping(
                     package_protocol=package_protocol)
 

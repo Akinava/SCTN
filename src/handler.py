@@ -6,12 +6,14 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
+import time
 from settings import logger
 from crypt_tools import Tools as CryptTools
 from connection import Connection
 from net_pool import NetPool
 from package_parser import Parser
 from utilit import encode
+import settings
 
 
 class Handler:
@@ -56,11 +58,10 @@ class Handler:
     def __handle(self):
         logger.debug('')
         # TODO make a tread
-        package_protocol = self.__define_package()
-        if package_protocol is None:
+        self.__define_package()
+        if self.package_protocol is None:
             return
-        self.parser.set_package_protocol(package_protocol)
-        response_function = self.__get_response_function(package_protocol)
+        response_function = self.__get_response_function()
         if response_function is None:
             return
         return response_function()
@@ -68,30 +69,33 @@ class Handler:
     def __define_package(self):
         logger.debug('')
         for package_protocol in self.protocol['packages'].values():
-            if self.__define_request(package_protocol=package_protocol):
+            self.package_protocol = package_protocol
+            self.parser.set_package_protocol(package_protocol)
+            if self.__define_request():
                 logger.info('GeneralProtocol package define as {}'.format(package_protocol['name']))
-                return package_protocol
+                return
+        self.package_protocol = None
         logger.warn('GeneralProtocol can not define request')
 
-    def __define_request(self, package_protocol):
-        define_protocol_functions = self.__get_functions_for_define_protocol(package_protocol)
+    def __define_request(self):
+        define_protocol_functions = self.__get_functions_for_define_protocol()
         for define_func_name in define_protocol_functions:
             if not hasattr(self, define_func_name):
                 logger.info('define_func {} is not implemented'.format(define_func_name))
                 return False
             define_func = getattr(self, define_func_name)
-            if not define_func(package_protocol=package_protocol) is True:
+            if not define_func() is True:
                 return False
         return True
 
-    def __get_functions_for_define_protocol(self, package_protocol):
-        define_protocol_functions = package_protocol['define']
+    def __get_functions_for_define_protocol(self):
+        define_protocol_functions = self.package_protocol['define']
         if isinstance(define_protocol_functions, list):
             return define_protocol_functions
         return [define_protocol_functions]
 
-    def __get_response_function(self, request_protocol):
-        response_function_name = request_protocol.get('response')
+    def __get_response_function(self):
+        response_function_name = self.package_protocol.get('response')
         if response_function_name is None:
             logger.info('GeneralProtocol no response_function_name')
             return
@@ -112,13 +116,12 @@ class Handler:
 
     def send(self, **kwargs):
         connection = kwargs.get('connection', self.connection)
-        encrypted_message = self.crypt_tools.encrypt_message(**kwargs)
+        encrypted_message = self.crypt_tools.encrypt_message(**kwargs, connection=connection)
         connection.send(encrypted_message)
 
     def define_swarm_ping(self, **kwargs):
-        request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
-        return required_length == request_length
+        timestamp = self.parser.unpack_timestamp(self.connection.get_request())
+        return timestamp - settings.peer_ping_time_seconds < time.time() < timestamp + settings.peer_ping_time_seconds
 
     def swarm_ping(self, **kwargs):
         self.send(**kwargs, message=self.parser.pack_timestemp())

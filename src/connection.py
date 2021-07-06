@@ -12,6 +12,7 @@ from utilit import encode
 import settings
 from settings import logger
 from net_pool import NetPool
+from utilit import NULL
 
 
 class Connection:
@@ -23,13 +24,15 @@ class Connection:
             self.__request = request
         if remote_addr:
             self.__set_remote_addr(remote_addr)
+        self.sent_message_time = None
         NetPool().save_connection(self)
 
+
     def __str__(self):
-        return '{}:{}'.format(self.__remote_host, self.__remote_port)
+        return '{}:{},{}'.format(self.__remote_host, self.__remote_port, self.type)
 
     def __repr__(self):
-        return '{}:{}'.format(self.__remote_host, self.__remote_port)
+        return '{}:{},{}'.format(self.__remote_host, self.__remote_port, self.type)
 
     def __set_remote_addr(self, addr):
         self.__remote_host, self.__remote_port = addr
@@ -50,18 +53,21 @@ class Connection:
         return time() - self.__received_message_time > settings.peer_timeout_seconds
 
     def last_sent_message_is_over_ping_time(self):
-        if not hasattr(self, '_sent_message_time'):
+        if self.sent_message_time is None:
             return True
-        return time() - self._sent_message_time > settings.peer_ping_time_seconds
+        return time() - self.sent_message_time > settings.peer_ping_time_seconds
 
-    def __set_time_sent_message(self):
-        self._sent_message_time = time()
+    def get_time_sent_message(self):
+        return self.sent_message_time
+
+    def set_time_sent_message(self, sent_message_time=NULL()):
+        if sent_message_time is NULL():
+            self.sent_message_time = time()
+        else:
+            self.sent_message_time = sent_message_time
 
     def __set_time_received_message(self):
         self.__received_message_time = time()
-
-    def set_type(self, connection_type):
-        self.type = connection_type
 
     def get_type(self):
         if hasattr(self, 'type'):
@@ -87,10 +93,16 @@ class Connection:
     def __get_remote_addr(self):
         return (self.__remote_host, self.__remote_port)
 
+    def set_encrypt_marker(self, encrypt_marker):
+        self.__encrypt_marker = encrypt_marker
+
+    def get_encrypt_marker(self):
+        return self.__encrypt_marker
+
     def send(self, response):
         logger.info('%s to %s' % (response.hex(), (self.__remote_host, self.__remote_port)))
         self.__transport.sendto(encode(response), self.__get_remote_addr())
-        self.__set_time_sent_message()
+        self.set_time_sent_message()
 
     def shutdown(self):
         if self.__transport.is_closing():

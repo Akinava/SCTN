@@ -93,7 +93,8 @@ class Client(UDPHost):
         logger.info('')
         connection = self.create_connection((server_data['host'], server_data['port']))
         connection.set_pub_key(server_data['pub_key'])
-        connection.set_type(server_data['type'])
+        connection.type = server_data['type']
+        connection.set_encrypt_marker(settings.request_encrypted_protocol)
         handler_init = self.handler(self.protocol)
         peer_request_message = handler_init.swarm_peer_request(receiver_connection=connection)
         connection.send(peer_request_message)

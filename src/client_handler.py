@@ -11,21 +11,22 @@ import settings
 
 
 class ClientHandler(Handler):
-    def verify_len_swarm_peer_request(self, **kwargs):
+    def verify_package_length(self, **kwargs):
         request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_requared_length(kwargs['package_protocol'])
+        required_length = self.parser.calc_structure_length()
+        return required_length == request_length
+
+    def verify_len_swarm_peer(self, **kwargs):
+        request_length = len(self.connection.get_request())
+        required_length = self.parser.calc_structure_length()
         return required_length == request_length
 
     def verify_protocol_version(self, **kwargs):
-        request_major_version_marker = self.parser.get_part('major_version_marker', kwargs['package_protocol'])
-        request_minor_version_marker = self.parser.get_part('minor_version_marker', kwargs['package_protocol'])
+        request_major_version_marker = self.parser.get_part('major_version_marker')
+        request_minor_version_marker = self.parser.get_part('minor_version_marker')
         my_major_version_marker, my_minor_version_marker = self.protocol['client_protocol_version']
         return my_major_version_marker >= request_major_version_marker \
                and my_minor_version_marker >= request_minor_version_marker
-
-    def verify_len_swarm_peer(self, **kwargs):
-        print(vars(self.connection))
-        return False
 
     def verify_len_sstn_request(self, **kwargs):
         # FIXME
@@ -36,9 +37,8 @@ class ClientHandler(Handler):
         return False
 
     def verify_package_id_marker(self, **kwargs):
-        package_protocol = kwargs['package_protocol']
-        request_id_marker = self.parser.get_part('package_id_marker', package_protocol)
-        required_id_marker = package_protocol['package_id_marker']
+        request_id_marker = self.parser.get_part('package_id_marker')
+        required_id_marker = self.package_protocol['package_id_marker']
         return request_id_marker == required_id_marker
 
     def verify_timestamp(self, **kwargs):
