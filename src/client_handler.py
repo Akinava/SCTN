@@ -11,35 +11,7 @@ import settings
 
 
 class ClientHandler(Handler):
-    def verify_package_length(self, **kwargs):
-        request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_structure_length()
-        return required_length == request_length
 
-    def verify_len_swarm_peer(self, **kwargs):
-        request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_structure_length()
-        return required_length == request_length
-
-    def verify_protocol_version(self, **kwargs):
-        request_major_version_marker = self.parser.get_part('major_version_marker')
-        request_minor_version_marker = self.parser.get_part('minor_version_marker')
-        my_major_version_marker, my_minor_version_marker = self.protocol['client_protocol_version']
-        return my_major_version_marker >= request_major_version_marker \
-               and my_minor_version_marker >= request_minor_version_marker
-
-    def verify_len_sstn_request(self, **kwargs):
-        # FIXME
-        return False
-
-    def verify_len_sstn_list(self, **kwargs):
-        # FIXME
-        return False
-
-    def verify_package_id_marker(self, **kwargs):
-        request_id_marker = self.parser.get_part('package_id_marker')
-        required_id_marker = self.package_protocol['package_id_marker']
-        return request_id_marker == required_id_marker
 
     def verify_timestamp(self, **kwargs):
         timestamp = self.parser.get_part('timestamp')
@@ -85,8 +57,7 @@ class ClientHandler(Handler):
         return kwargs['receiver_connection'].get_fingerprint()
 
     def get_timestamp(self, **kwargs):
-        return self.parser.pack_timestemp()
+        return self.parser.pack_timestamp()
 
     def get_requester_open_key(self, **kwargs):
-        # I am requester
         return self.crypt_tools.get_open_key()

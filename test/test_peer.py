@@ -26,7 +26,7 @@ PROTOCOL = {
             'name': 'test_peer_hello',
             'package_id_marker': 128,
             'define': [
-                'verify_test_peer_hello_package_len',
+                'verify_package_length',
                 'verify_package_id_marker'],
             'response': 'test_peer_time',
             'structure': [
@@ -47,18 +47,11 @@ PROTOCOL = {
 class Handler:
     def init(self):
         logger.info('')
-        self.do_test_peer_hello()
+        # this method is called after making the swarm see in config file parameter peer_connections
+        self.test_peer_hello()
 
-    def verify_test_peer_hello_package_len(self, **kwargs):
-        request_length = len(self.connection.get_request())
-        required_length = self.parser.calc_structure_length()
-        return required_length == request_length
-
-    def verify_package_id_marker(self, **kwargs):
-        package_protocol = kwargs['package_protocol']
-        request_id_marker = self.parser.get_part('package_id_marker')
-        required_id_marker = package_protocol['package_id_marker']
-        return request_id_marker == required_id_marker
+    def test_peer_hello(self):
+        return self.make_message(package_name='test_peer_hello')
 
     def test_peer_time(self):
         logger.info('')

@@ -9,17 +9,18 @@ __version__ = [0, 0]
 import asyncio
 from settings import logger
 import settings
-from host import UDPHost
+from host import Host
 from client_handler import ClientHandler
-from client_protocol import PROTOCOL as ClientProtocol
+from protocol import PROTOCOL
 from peers import Peers
 from utilit import update_obj
 
 
-class Client(UDPHost):
+class Client(Host):
     def __init__(self, handler, protocol):
+        self.swarm_status = 'in progress'
         logger.info('')
-        super(Client, self).__init__(handler=ClientHandler, protocol=ClientProtocol)
+        super(Client, self).__init__(handler=ClientHandler, protocol=PROTOCOL)
         self.__extend_handler(handler)
         self.__extend_protocol(protocol)
 
@@ -56,7 +57,12 @@ class Client(UDPHost):
 
     def __has_enough_client_connections(self):
         logger.info('')
-        return self.net_pool.has_enough_connections()
+        if not self.net_pool.has_enough_connections():
+            return False
+        if self.swarm_status == 'in progress':
+            self.swarm_status = 'done'
+            self.init()
+        return True
 
     def __has_server_connection(self):
         logger.info('')
