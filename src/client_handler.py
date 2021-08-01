@@ -11,12 +11,6 @@ import settings
 
 
 class ClientHandler(Handler):
-
-
-    def verify_timestamp(self, **kwargs):
-        timestamp = self.parser.get_part('timestamp')
-        return time() - settings.peer_ping_time_seconds < timestamp < time() + settings.peer_ping_time_seconds
-
     def verify_receiver_fingerprint(self, **kwargs):
         my_fingerprint_from_request = self.parser.get_part('receiver_fingerprint')
         my_fingerprint_reference = self.crypt_tools.get_fingerprint()
@@ -48,7 +42,7 @@ class ClientHandler(Handler):
         return self.protocol['client_protocol_version'][1]
 
     def _get_marker_encrypted_request_marker(self, **kwargs):
-        return settings.request_encrypted_protocol == True
+        return settings.request_encrypted_protocol is True
 
     def _get_marker_package_id_marker(self, **kwargs):
         return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
