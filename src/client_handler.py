@@ -17,11 +17,17 @@ class ClientHandler(Handler):
             receiver_connection=kwargs['receiver_connection'])
 
     def hpn_servers_request(self, **kwargs):
+        # package = self.parser.unpack_package()
+        # receiver_connection = Connection(
+        #     transport=self.transport,
+        #     remote_addr=package['neighbour_addr'])
+        # receiver_connection.set_pub_key('')
         # message = self.make_message(
-        #     package_name='hpn_servers_request',
-        #     receiver_connection=kwargs['receiver_connection'])
-        print('kwargs', kwargs)
-        print('hpn_servers_request >>>', kwargs)
+        #     ackage_name='hpn_servers_request',
+        #     receiver_connection=receiver_connection)
+        # print('message >>>', message.hex())
+        print('hpn_servers_request >>>')
+        exit()
 
     def _get_marker_encrypted_request_marker(self, **kwargs):
         return settings.request_encrypted_protocol is True
@@ -29,5 +35,5 @@ class ClientHandler(Handler):
     def _get_marker_package_id_marker(self, **kwargs):
         return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
 
-    def get_requester_open_key(self, **kwargs):
-        return self.crypt_tools.get_open_key()
+    def get_requester_pub_key(self, **kwargs):
+        return self.crypt_tools.get_pub_key()
