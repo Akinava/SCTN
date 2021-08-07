@@ -11,15 +11,14 @@ import settings
 
 
 class ClientHandler(Handler):
-    def verify_receiver_fingerprint(self, **kwargs):
-        my_fingerprint_from_request = self.parser.get_part('receiver_fingerprint')
-        my_fingerprint_reference = self.crypt_tools.get_fingerprint()
-        return my_fingerprint_from_request == my_fingerprint_reference
-
-    def swarm_peer_request(self, **kwargs):
+    def hpn_neighbour_client_request(self, **kwargs):
         return self.make_message(
-            package_name='swarm_peer_request',
+            package_name='hpn_neighbour_client_request',
             receiver_connection=kwargs['receiver_connection'])
+
+    def hpn_servers_request(self, **kwargs):
+        # TODO
+        print('hpn_servers_request >>>', kwargs)
 
     def get_markers(self, **kwargs):
         markers = 0
@@ -46,12 +45,6 @@ class ClientHandler(Handler):
 
     def _get_marker_package_id_marker(self, **kwargs):
         return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
-
-    def get_receiver_fingerprint(self, **kwargs):
-        return kwargs['receiver_connection'].get_fingerprint()
-
-    def get_timestamp(self, **kwargs):
-        return self.parser.pack_timestamp()
 
     def get_requester_open_key(self, **kwargs):
         return self.crypt_tools.get_open_key()

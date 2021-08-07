@@ -77,30 +77,30 @@ class Client(Host):
 
     def __connect_via_client(self):
         connection = self.net_pool.get_random_client_connection()
-        self.handler.do_swarm_peer_request(connection)
+        self.handler.do_neighbour_client_request(connection)
 
     def __connect_via_server(self):
         logger.info('')
         server_data = Peers().get_random_server_from_file()
         if server_data:
-            self.__do_swarm_peer_request_to_server(server_data)
+            self.__do_neighbour_client_request_to_server(server_data)
             return
         raise Exception('Error: no server data in peers.json file')
 
-    def __do_swarm_peer_request_to_server(self, server_data):
+    def __do_neighbour_client_request_to_server(self, server_data):
         logger.info('')
         server_protocol = server_data['protocol']
         if server_protocol == 'udp':
-            self.__udp_swarm_peer_request_to_server(server_data)
+            self.__udp_neighbour_client_request_to_server(server_data)
         else:
             raise Exception('Error: {} protocol handler not implemented yet'.format(server_protocol))
 
-    def __udp_swarm_peer_request_to_server(self, server_data):
+    def __udp_neighbour_client_request_to_server(self, server_data):
         logger.info('')
         connection = self.create_connection((server_data['host'], server_data['port']))
         connection.set_pub_key(server_data['pub_key'])
         connection.type = server_data['type']
         connection.set_encrypt_marker(settings.request_encrypted_protocol)
         handler_init = self.handler(self.protocol)
-        peer_request_message = handler_init.swarm_peer_request(receiver_connection=connection)
+        peer_request_message = handler_init.hpn_neighbour_client_request(receiver_connection=connection)
         connection.send(peer_request_message)
