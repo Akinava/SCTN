@@ -17,28 +17,11 @@ class ClientHandler(Handler):
             receiver_connection=kwargs['receiver_connection'])
 
     def hpn_servers_request(self, **kwargs):
-        # TODO
+        # message = self.make_message(
+        #     package_name='hpn_servers_request',
+        #     receiver_connection=kwargs['receiver_connection'])
+        print('kwargs', kwargs)
         print('hpn_servers_request >>>', kwargs)
-
-    def get_markers(self, **kwargs):
-        markers = 0
-        for marker_name in kwargs['markers']['name']:
-            get_marker_value_function = getattr(self, '_get_marker_{}'.format(marker_name))
-            marker = get_marker_value_function(**kwargs)
-            marker_description = self.protocol['markers'][marker_name]
-            markers ^= self.build_marker(marker, marker_description, kwargs['markers'])
-        return self.parser.pack_int(markers, kwargs['markers']['length'])
-
-    def build_marker(self, marker, marker_description, part_structure):
-        part_structure_length_bits = part_structure['length'] * 8
-        left_shift = part_structure_length_bits - marker_description['start_bit'] - marker_description['length']
-        return marker << left_shift
-
-    def _get_marker_major_version_marker(self, **kwargs):
-        return self.protocol['client_protocol_version'][0]
-
-    def _get_marker_minor_version_marker(self, **kwargs):
-        return self.protocol['client_protocol_version'][1]
 
     def _get_marker_encrypted_request_marker(self, **kwargs):
         return settings.request_encrypted_protocol is True
