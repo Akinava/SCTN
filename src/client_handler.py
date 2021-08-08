@@ -7,6 +7,7 @@ __version__ = [0, 0]
 
 
 from handler import Handler
+from connection import Connection
 import settings
 
 
@@ -17,17 +18,23 @@ class ClientHandler(Handler):
             receiver_connection=kwargs['receiver_connection'])
 
     def hpn_servers_request(self, **kwargs):
-        # package = self.parser.unpack_package()
-        # receiver_connection = Connection(
-        #     transport=self.transport,
-        #     remote_addr=package['neighbour_addr'])
-        # receiver_connection.set_pub_key('')
-        # message = self.make_message(
-        #     ackage_name='hpn_servers_request',
-        #     receiver_connection=receiver_connection)
-        # print('message >>>', message.hex())
-        print('hpn_servers_request >>>')
-        exit()
+        package = self.parser.unpack_package()
+        receiver_connection = Connection(
+            transport=self.transport,
+            remote_addr=package['neighbour_addr'])
+        receiver_connection.set_pub_key(package['neighbour_pub_key'])
+        receiver_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        receiver_connection.type = 'client'
+
+        message = self.make_message(
+            package_name='hpn_servers_request',
+            receiver_connection=receiver_connection)
+
+        # print(self.parser.unpack_package(data=message, package_protocol_name='hpn_servers_request'))
+        self.send(
+            connection=receiver_connection,
+            message=message,
+        )
 
     def _get_marker_encrypted_request_marker(self, **kwargs):
         return settings.request_encrypted_protocol is True
