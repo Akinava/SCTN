@@ -30,10 +30,12 @@ class ClientHandler(Handler):
             package_name='hpn_servers_request',
             receiver_connection=receiver_connection)
 
-        # print(self.parser.unpack_package(data=message, package_protocol_name='hpn_servers_request'))
+        self.parser.debug_unpack_package(data=message, package_protocol_name='hpn_servers_request')
+
         self.send(
             connection=receiver_connection,
             message=message,
+            package_protocol_name='hpn_servers_request'
         )
 
     def _get_marker_encrypted_request_marker(self, **kwargs):

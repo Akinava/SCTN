@@ -103,4 +103,8 @@ class Client(Host):
         connection.set_encrypt_marker(settings.request_encrypted_protocol)
         handler_init = self.handler(self.protocol)
         peer_request_message = handler_init.hpn_neighbour_client_request(receiver_connection=connection)
-        connection.send(peer_request_message)
+        handler_init.send(
+            message=peer_request_message,
+            connection=connection,
+            package_protocol_name='hpn_neighbour_client_request',
+        )
