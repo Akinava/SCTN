@@ -21,8 +21,8 @@ from utilit import now
 
 PROTOCOL = {
     'protocol_version': __version__,
-    'packages': {
-        'test_peer_hello': {
+    'packages': [
+        {
             'name': 'test_peer_hello',
             'package_id_marker': 128,
             'define': [
@@ -32,7 +32,7 @@ PROTOCOL = {
             'structure': [
                 {'name': 'package_id_marker', 'length': 1}]
         },
-        'test_peer_time': {
+        {
             'name': 'test_peer_time',
             'package_id_marker': 129,
             'define': 'verify_package_id_marker',
@@ -40,7 +40,7 @@ PROTOCOL = {
                 {'name': 'package_id_marker', 'length': 1},
                 {'name': 'peer_time', 'length': len(now())}]
         }
-    }
+    ]
 }
 
 

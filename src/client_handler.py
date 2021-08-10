@@ -12,32 +12,37 @@ import settings
 
 
 class ClientHandler(Handler):
-    def hpn_neighbour_client_request(self, **kwargs):
-        return self.make_message(
-            package_name='hpn_neighbour_client_request',
-            receiver_connection=kwargs['receiver_connection'])
+    def hpn_neighbour_client_request(self):
+        return self.make_message(package_name='hpn_neighbour_client_request')
 
-    def hpn_servers_request(self, **kwargs):
+    def hpn_servers_request(self):
         package = self.parser.unpack_package()
-        receiver_connection = Connection(
+        receiving_connection = Connection(
             transport=self.transport,
             remote_addr=package['neighbour_addr'])
-        receiver_connection.set_pub_key(package['neighbour_pub_key'])
-        receiver_connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        receiver_connection.type = 'client'
+        receiving_connection.set_pub_key(package['neighbour_pub_key'])
+        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        receiving_connection.type = 'client'
 
         message = self.make_message(
             package_name='hpn_servers_request',
-            receiver_connection=receiver_connection)
+            receiving_connection=receiving_connection)
 
         self.send(
-            connection=receiver_connection,
+            receiving_connection=receiving_connection,
             message=message,
             package_protocol_name='hpn_servers_request'
         )
 
-    def hpn_servers_list(self, **kwargs):
-        print('>>> hpn_servers_list')
+    def hpn_servers_list(self):
+        message = self.make_message(package_name='hpn_servers_list')
+        self.send(
+            message=message,
+            package_protocol_name='hpn_servers_request'
+        )
+
+    def get_hpn_servers_list(self, **kwargs):
+        print('>>> get_hpn_servers_list')
         exit()
 
     def _get_marker_encrypted_request_marker(self, **kwargs):

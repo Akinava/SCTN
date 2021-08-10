@@ -97,14 +97,17 @@ class Client(Host):
 
     def __udp_neighbour_client_request_to_server(self, server_data):
         logger.info('')
-        connection = self.create_connection((server_data['host'], server_data['port']))
-        connection.set_pub_key(server_data['pub_key'])
-        connection.type = server_data['type']
-        connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        handler_init = self.handler(self.protocol)
-        peer_request_message = handler_init.hpn_neighbour_client_request(receiver_connection=connection)
+        receiving_connection = self.create_connection((server_data['host'], server_data['port']))
+        receiving_connection.set_pub_key(server_data['pub_key'])
+        receiving_connection.type = server_data['type']
+        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        handler_init = self.handler(
+            protocol=self.protocol,
+            connection=receiving_connection
+        )
+        peer_request_message = handler_init.hpn_neighbour_client_request()
         handler_init.send(
             message=peer_request_message,
-            connection=connection,
+            receiving_connection=receiving_connection,
             package_protocol_name='hpn_neighbour_client_request',
         )
