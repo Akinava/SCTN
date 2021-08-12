@@ -18,11 +18,11 @@ from utilit import update_obj
 
 class Client(Host):
     def __init__(self, handler, protocol):
-        self.swarm_status = 'in progress'
         logger.info('')
-        super(Client, self).__init__(handler=ClientHandler, protocol=PROTOCOL)
+        self.swarm_status = 'in progress'
+        extended_protocol = self.__extend_protocol(PROTOCOL, protocol)
+        super(Client, self).__init__(handler=ClientHandler, protocol=extended_protocol)
         self.__extend_handler(handler)
-        self.__extend_protocol(protocol)
 
     async def run(self):
         logger.info('')
@@ -34,8 +34,9 @@ class Client(Host):
         await swarm_task
         await ping_task
 
-    def __extend_protocol(self, protocol):
-        self.protocol = update_obj(protocol, self.protocol)
+    def __extend_protocol(self, base_protocol, client_protocol):
+        logger.debug('')
+        return update_obj(base_protocol, client_protocol)
 
     def __extend_handler(self, handler):
         for func_name in dir(handler):
