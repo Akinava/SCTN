@@ -9,6 +9,7 @@ __version__ = [0, 0]
 from handler import Handler
 from connection import Connection
 import settings
+from peers import Peers
 
 
 class ClientHandler(Handler):
@@ -42,6 +43,9 @@ class ClientHandler(Handler):
         )
 
     def get_hpn_servers_list(self, **kwargs):
+        server_data = Peers().get_servers_list()
+        return self.parser.pack_servers_list(server_data)
+        # TODO
         print('>>> get_hpn_servers_list')
         exit()
 
