@@ -20,6 +20,31 @@ class Peers(Singleton):
         logger.info('Peers')
         self.__load()
 
+    def save_servers_list(self, servers_list):
+        mapping_list = [
+            ['hpn_servers_pub_key', 'pub_key'],
+            ['hpn_servers_protocol', 'protocol'],
+        ]
+        for server_src in servers_list:
+            server_dst = {'type': 'server'}
+            for src, dst in mapping_list:
+                server_dst[dst] = server_src[src]
+            host, port = server_src['hpn_servers_addr']
+            server_dst['host'] = host
+            server_dst['port'] = port
+            if self.__has_server_in_list(server_dst):
+                continue
+            self.__peers.append(server_dst)
+        self.__save()
+
+    def __has_server_in_list(self, new_server):
+        for server in self.__peers:
+            for key, value in server.items():
+                if new_server.get(key) != value:
+                    continue
+                return True
+        return False
+
     def get_random_server_from_file(self):
         logger.info('')
         servers = self.__filter_peers_by_type('server')
