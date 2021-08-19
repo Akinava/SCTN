@@ -49,10 +49,7 @@ class ClientHandler(Handler):
         message = self.parser.pack_self_defined_int(len(servers_data))
         for server_data in servers_data:
             message += self.pack_server(server_data)
-        self.send(
-            message=message,
-            package_protocol_name='hpn_servers_request'
-        )
+        return message
 
     def pack_server(self, server_data):
         structure = self.protocol['lists']['hpn_servers_list']['structure']
@@ -80,3 +77,7 @@ class ClientHandler(Handler):
 
     def get_requester_pub_key(self, **kwargs):
         return self.crypt_tools.get_pub_key()
+
+    def save_hpn_servers_list(self):
+        print('>>> save_hpn_servers_list')
+        exit()
