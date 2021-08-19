@@ -16,3 +16,7 @@ python3 test/test_peer.py -p docker/peers.json -c tmp/config.json  -s tmp/shadow
 
 # run server local
 python3 src/server_host.py -c docker/config.json -s docker/shadow
+
+TODO
+check peer_connections and init test client
+move hpn_common to lib
