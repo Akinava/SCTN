@@ -43,11 +43,34 @@ class ClientHandler(Handler):
         )
 
     def get_hpn_servers_list(self, **kwargs):
-        server_data = Peers().get_servers_list()
-        return self.parser.pack_servers_list(server_data)
-        # TODO
-        print('>>> get_hpn_servers_list')
-        exit()
+        servers_data = Peers().get_servers_list()
+        hpn_servers_list_max_length = self.protocol['lists']['hpn_servers_list']['length']['max']
+        servers_data = servers_data[: hpn_servers_list_max_length]
+        message = self.parser.pack_self_defined_int(len(servers_data))
+        for server_data in servers_data:
+            message += self.pack_server(server_data)
+        self.send(
+            message=message,
+            package_protocol_name='hpn_servers_request'
+        )
+
+    def pack_server(self, server_data):
+        structure = self.protocol['lists']['hpn_servers_list']['structure']
+        return self.make_message(structure=structure, server_data=server_data)
+
+    def get_hpn_servers_pub_key(self, **kwargs):
+        return kwargs['server_data']['pub_key']
+
+    def get_hpn_servers_protocol(self, **kwargs):
+        return self.parser.pack_mapping(
+            mapping_name='hpn_servers_protocol',
+            mapping_data=kwargs['server_data']['protocol']
+        )
+
+    def get_hpn_servers_addr(self, **kwargs):
+        host = kwargs['server_data']['host']
+        port = kwargs['server_data']['port']
+        return self.parser.pack_addr((host, port))
 
     def _get_marker_encrypted_request_marker(self, **kwargs):
         return settings.request_encrypted_protocol is True

@@ -8,8 +8,9 @@ __version__ = [0, 0]
 
 import json
 import random
-from cryptotool import *
-from utilit import Singleton
+from datetime import timedelta
+from cryptotool import B58
+from utilit import Singleton, str_to_datetime, now
 from settings import logger
 import settings
 
@@ -24,6 +25,7 @@ class Peers(Singleton):
         servers = self.__filter_peers_by_type('server')
         if not servers:
             return None
+        servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
         return random.choice(servers)
 
     def __find_peer(self, filter_kwargs):
@@ -39,15 +41,14 @@ class Peers(Singleton):
         if not servers:
             return None
         servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
-        return servers[settings.peer_connections]
+        return servers
 
     def __filter_peers_by_last_response_field(self, servers, days_delta):
+        # TODO last_response field is not updated
         filtered_list = []
         for peer in servers:
             datatime_string = peer.get('last_response')
-            if datatime_string is None:
-                continue
-            if str_to_datetime(datatime_string) + timedelta(days=days_delta) < now():
+            if datatime_string is not None and str_to_datetime(datatime_string) + timedelta(days=days_delta) < now():
                 continue
             filtered_list.append(peer)
         return filtered_list
