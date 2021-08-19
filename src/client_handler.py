@@ -79,5 +79,6 @@ class ClientHandler(Handler):
         return self.crypt_tools.get_pub_key()
 
     def save_hpn_servers_list(self):
-        print('>>> save_hpn_servers_list')
+        package = self.parser.unpack_package()
+        print('>>> save_hpn_servers_list', package)
         exit()
