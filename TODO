@@ -20,3 +20,4 @@ python3 src/server_host.py -c docker/config.json -s docker/shadow
 TODO
 check peer_connections and init test client
 move hpn_common to lib
+dockerise

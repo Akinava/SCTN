@@ -37,6 +37,9 @@ class NetPool(Singleton):
         else:
             self.__put_connection_in_group(connection)
 
+    def get_connection(self, connection):
+        return self.__group[self.__group.index(connection)]
+
     def __update_connection_in_group(self, new_connection):
         connection_index = self.__group.index(new_connection)
         old_connection = self.__group[connection_index]

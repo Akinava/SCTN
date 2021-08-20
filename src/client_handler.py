@@ -6,9 +6,11 @@ __license__ = 'MIT License'
 __version__ = [0, 0]
 
 
+import time
 from handler import Handler
 from connection import Connection
 import settings
+from settings import logger
 from peers import Peers
 
 
@@ -29,11 +31,42 @@ class ClientHandler(Handler):
             package_name='hpn_servers_request',
             receiving_connection=receiving_connection)
 
+        self.__thread_handle_message_loss(
+            receiving_connection=receiving_connection,
+            message=message,
+            package_protocol_name='hpn_servers_request'
+        )
+
         self.send(
             receiving_connection=receiving_connection,
             message=message,
             package_protocol_name='hpn_servers_request'
         )
+
+    def __thread_handle_message_loss(self, **kwargs):
+        self.run_stream(
+            target=self.handle_message_loss,
+            **kwargs
+        )
+
+    def handle_message_loss(self, receiving_connection, message, package_protocol_name):
+        time_message_send = time.time()
+        attempt_connect = settings.attempt_connect
+        while attempt_connect and time_message_send > receiving_connection.get_time_received_message():
+            time.sleep(0.1)
+            receiving_connection = self.net_pool.get_connection(receiving_connection)
+            if time_message_send + settings.peer_ping_time_seconds > time.time():
+                receiving_connection
+                continue
+            attempt_connect -= 1
+            time_message_send = time.time()
+            logger.warn('message {} was lasted'.format(package_protocol_name))
+            self.send(
+                receiving_connection=receiving_connection,
+                message=message,
+                package_protocol_name='hpn_servers_request'
+            )
+        logger.info('message {} was delivered'.format(package_protocol_name))
 
     def hpn_servers_list(self):
         message = self.make_message(package_name='hpn_servers_list')
