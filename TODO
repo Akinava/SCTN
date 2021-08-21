@@ -11,8 +11,11 @@ docker run -it sctn:v0
 docker start -i sctn_0
 
 # run client local
-python3 test/test_peer.py -p docker/peers.json -c docker/config.json -s docker/shadow
-python3 test/test_peer.py -p docker/peers.json -c tmp/config.json  -s tmp/shadow
+python3 test/test_peer.py -p docker/peers.json -c tmp/config1.json -s docker/shadow
+python3 test/test_peer.py -p docker/peers.json -c tmp/config2.json -s docker/shadow
+python3 test/test_peer.py -p docker/peers.json -c tmp/config3.json -s docker/shadow
+python3 test/test_peer.py -p docker/peers.json -c tmp/config4.json -s docker/shadow
+python3 test/test_peer.py -p docker/peers.json -c tmp/config5.json -s docker/shadow
 
 # run server local
 python3 src/server_host.py -c docker/config.json -s docker/shadow
@@ -21,3 +24,6 @@ TODO
 check peer_connections and init test client
 move hpn_common to lib
 dockerise
+servers_timeout_days setter
+test server disconnect
+test connect via client
