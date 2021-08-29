@@ -17,7 +17,7 @@ import settings
 
 class Peers(Singleton):
     def __init__(self):
-        logger.info('Peers')
+        #logger.info('')
         self.__load()
 
     def save_servers_list(self, servers_list):
@@ -46,7 +46,7 @@ class Peers(Singleton):
         return False
 
     def get_random_server_from_file(self):
-        logger.info('')
+        #logger.info('')
         servers = self.__filter_peers_by_type('server')
         if not servers:
             return None
@@ -96,7 +96,7 @@ class Peers(Singleton):
             f.write(json.dumps(self.__peers, indent=4))
 
     def __unpack_peers_property(self):
-        logger.info('')
+        #logger.info('')
         for peer in self.__peers:
             peer['pub_key'] = B58().unpack(peer['pub_key'])
 

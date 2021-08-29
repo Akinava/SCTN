@@ -14,7 +14,7 @@ import settings
 
 class NetPool(Singleton):
     def __init__(self):
-        logger.info('NetPool')
+        #logger.info('NetPool')
         self.__group = []
 
     def __clean_groups(self):
@@ -27,11 +27,11 @@ class NetPool(Singleton):
         self.__group = alive_group_tmp
 
     def has_enough_connections(self):
-        logger.info('NetPool')
+        #logger.info('NetPool')
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
     def save_connection(self, connection):
-        logger.info('')
+        #logger.info('')
         if connection in self.__group:
             self.__update_connection_in_group(connection)
         else:
@@ -43,10 +43,10 @@ class NetPool(Singleton):
     def __update_connection_in_group(self, new_connection):
         connection_index = self.__group.index(new_connection)
         old_connection = self.__group[connection_index]
-        self.__copy_connection_property(new_connection, old_connection)
+        self.copy_connection_property(new_connection, old_connection)
         self.__group[connection_index] = new_connection
 
-    def __copy_connection_property(self, new_connection, old_connection):
+    def copy_connection_property(self, new_connection, old_connection):
         new_connection.set_pub_key(old_connection.get_pub_key())
         new_connection.set_encrypt_marker(old_connection.get_encrypt_marker())
         new_connection.set_time_sent_message(old_connection.get_time_sent_message())
@@ -60,7 +60,7 @@ class NetPool(Singleton):
         return self.__group
 
     def get_all_client_connections(self):
-        logger.info('')
+        #logger.info('')
         return self.__filter_connection_by_type('client')
 
     def get_random_client_connection(self):
@@ -76,13 +76,19 @@ class NetPool(Singleton):
         return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
-        logger.info('{}'.format(my_type))
+        #logger.info('{}'.format(my_type))
         self.__clean_groups()
         group = []
         for connection in self.__group:
             if connection.type == my_type:
                 group.append(connection)
         return group
+
+    def find_connection_by_fingerprint(self, fingerprint):
+        for connection in self.__group:
+            if connection.get_fingerprint() == fingerprint:
+                return connection
+        return None
 
     def shutdown(self):
         for connection in self.__group:

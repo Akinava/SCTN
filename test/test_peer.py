@@ -17,6 +17,7 @@ sys.path.append(os.path.join(path, 'src'))
 from client_host import Client
 from settings import logger
 from utilit import now
+from crypt_tools import Tools as CryptTools
 
 
 PROTOCOL = {
@@ -27,17 +28,30 @@ PROTOCOL = {
             'package_id_marker': 128,
             'define': [
                 'verify_package_length',
-                'verify_package_id_marker'],
+                'verify_protocol_version',
+                'verify_package_id_marker',
+                'verify_receiver_fingerprint',
+            ],
             'response': 'test_peer_time',
             'structure': [
-                {'name': 'package_id_marker', 'length': 1}]
+                {'name': ('major_protocol_version_marker', 'minor_protocol_version_marker'), 'length': 1, 'type': 'markers'},
+                {'name': 'package_id_marker', 'length': 1},
+                {'name': 'receiver_fingerprint', 'length': CryptTools.fingerprint_length}]
         },
         {
             'name': 'test_peer_time',
             'package_id_marker': 129,
-            'define': 'verify_package_id_marker',
+            'define': [
+                'verify_package_length',
+                'verify_protocol_version',
+                'verify_package_id_marker',
+                'verify_receiver_fingerprint',
+            ],
+            'response': 'show_peer_time',
             'structure': [
+                {'name': ('major_protocol_version_marker', 'minor_protocol_version_marker'), 'length': 1, 'type': 'markers'},
                 {'name': 'package_id_marker', 'length': 1},
+                {'name': 'receiver_fingerprint', 'length': CryptTools.fingerprint_length},
                 {'name': 'peer_time', 'length': len(now())}]
         }
     ]

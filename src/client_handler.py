@@ -15,11 +15,19 @@ from peers import Peers
 
 
 class ClientHandler(Handler):
-    def hpn_neighbour_client_request(self):
-        return self.make_message(package_name='hpn_neighbour_client_request')
+    def hpn_neighbour_client_request(self, receiving_connection):
+        message = self.make_message(
+            package_protocol_name='hpn_neighbour_client_request',
+            receiving_connection=receiving_connection)
+
+        self.send(
+            package_protocol_name='hpn_neighbour_client_request',
+            receiving_connection=receiving_connection,
+            message=message)
 
     def hpn_servers_request(self):
         package = self.parser.unpack_package()
+        logger.info('{}'.format(package))
         receiving_connection = Connection(
             transport=self.transport,
             remote_addr=package['neighbour_addr'])
@@ -28,18 +36,18 @@ class ClientHandler(Handler):
         receiving_connection.type = 'client'
 
         message = self.make_message(
-            package_name='hpn_servers_request',
+            package_protocol_name='hpn_servers_request',
             receiving_connection=receiving_connection)
 
         self.__thread_handle_message_loss(
-            receiving_connection=receiving_connection,
             message=message,
+            receiving_connection=receiving_connection,
             package_protocol_name='hpn_servers_request'
         )
 
         self.send(
-            receiving_connection=receiving_connection,
             message=message,
+            receiving_connection=receiving_connection,
             package_protocol_name='hpn_servers_request'
         )
 
@@ -85,8 +93,10 @@ class ClientHandler(Handler):
         return message
 
     def pack_server(self, server_data):
-        structure = self.protocol['lists']['hpn_servers_list']['structure']
-        return self.make_message(structure=structure, server_data=server_data)
+        package_structure = self.protocol['lists']['hpn_servers_list']
+        return self.make_message(
+            package_structure=package_structure,
+            server_data=server_data)
 
     def get_hpn_servers_pub_key(self, **kwargs):
         return kwargs['server_data']['pub_key']
@@ -106,7 +116,7 @@ class ClientHandler(Handler):
         return settings.request_encrypted_protocol is True
 
     def _get_marker_package_id_marker(self, **kwargs):
-        return self.protocol['packages'][kwargs['package_name']]['package_id_marker']
+        return self.protocol['packages'][kwargs['package_protocol_name']]['package_id_marker']
 
     def get_requester_pub_key(self, **kwargs):
         return self.crypt_tools.get_pub_key()

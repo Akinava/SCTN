@@ -18,7 +18,7 @@ from utilit import update_obj
 
 class Client(Host):
     def __init__(self, handler, protocol):
-        logger.info('')
+        #logger.info('')
         self.swarm_status = 'in progress'
         extended_protocol = self.__extend_protocol(PROTOCOL, protocol)
         super(Client, self).__init__(handler=ClientHandler, protocol=extended_protocol)
@@ -35,7 +35,7 @@ class Client(Host):
         await ping_task
 
     def __extend_protocol(self, base_protocol, client_protocol):
-        logger.debug('')
+        #logger.debug('')
         return update_obj(base_protocol, client_protocol)
 
     def __extend_handler(self, handler):
@@ -102,13 +102,6 @@ class Client(Host):
         receiving_connection.set_pub_key(server_data['pub_key'])
         receiving_connection.type = server_data['type']
         receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        handler_init = self.handler(
-            protocol=self.protocol,
-            connection=receiving_connection
-        )
-        peer_request_message = handler_init.hpn_neighbour_client_request()
-        handler_init.send(
-            message=peer_request_message,
-            receiving_connection=receiving_connection,
-            package_protocol_name='hpn_neighbour_client_request',
+        self.handler().hpn_neighbour_client_request(
+            receiving_connection=receiving_connection
         )
