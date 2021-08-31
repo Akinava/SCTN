@@ -14,7 +14,7 @@ import settings
 
 class NetPool(Singleton):
     def __init__(self):
-        #logger.info('NetPool')
+        #logger.debug('NetPool')
         self.__group = []
 
     def __clean_groups(self):
@@ -27,11 +27,11 @@ class NetPool(Singleton):
         self.__group = alive_group_tmp
 
     def has_enough_connections(self):
-        #logger.info('NetPool')
+        #logger.debug('')
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
     def save_connection(self, connection):
-        #logger.info('')
+        #logger.debug('')
         if connection in self.__group:
             self.__update_connection_in_group(connection)
         else:
@@ -60,7 +60,7 @@ class NetPool(Singleton):
         return self.__group
 
     def get_all_client_connections(self):
-        #logger.info('')
+        #logger.debug('')
         return self.__filter_connection_by_type('client')
 
     def get_random_client_connection(self):
@@ -68,7 +68,7 @@ class NetPool(Singleton):
         return random.choice(group) if group else None
 
     def get_server_connections(self):
-        logger.info('NetPool')
+        logger.debug('')
         return self.__filter_connection_by_type('server')
 
     def has_client_connection(self):
@@ -76,7 +76,6 @@ class NetPool(Singleton):
         return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
-        #logger.info('{}'.format(my_type))
         self.__clean_groups()
         group = []
         for connection in self.__group:

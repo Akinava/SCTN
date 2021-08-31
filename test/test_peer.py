@@ -65,11 +65,11 @@ class Handler:
         self.test_peer_hello()
 
     def test_peer_hello(self):
-        return self.make_message(package_name='test_peer_hello')
+        return self.make_message(package_protocol_name='test_peer_hello')
 
     def test_peer_time(self):
         logger.info('')
-        return self.make_message(package_name='test_peer_time')
+        return self.make_message(package_protocol_name='test_peer_time')
 
     def get_peer_time(self, **kwarg):
         return now()

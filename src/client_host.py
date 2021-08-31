@@ -18,14 +18,14 @@ from utilit import update_obj
 
 class Client(Host):
     def __init__(self, handler, protocol):
-        #logger.info('')
+        #logger.debug('')
         self.swarm_status = 'in progress'
         extended_protocol = self.__extend_protocol(PROTOCOL, protocol)
         super(Client, self).__init__(handler=ClientHandler, protocol=extended_protocol)
         self.__extend_handler(handler)
 
     async def run(self):
-        logger.info('')
+        logger.debug('')
         self.listener = await self.create_listener(
             (settings.local_host,
              settings.default_port))
@@ -46,7 +46,7 @@ class Client(Host):
             setattr(self.handler, func_name, func)
 
     async def __serve_swarm(self):
-        logger.info('')
+        logger.debug('')
         while not self.listener.is_closing():
             if self.__has_enough_client_connections():
                 await asyncio.sleep(settings.peer_timeout_seconds)
@@ -57,7 +57,7 @@ class Client(Host):
             self.__find_new_connections()
 
     def __has_enough_client_connections(self):
-        logger.info('')
+        logger.debug('')
         if not self.net_pool.has_enough_connections():
             return False
         if self.swarm_status == 'in progress':
@@ -66,11 +66,11 @@ class Client(Host):
         return True
 
     def __has_server_connection(self):
-        logger.info('')
+        logger.debug('')
         return len(self.net_pool.get_server_connections()) > 0
 
     def __find_new_connections(self):
-        logger.info('')
+        logger.debug('')
         if self.net_pool.has_client_connection():
             self.__connect_via_client()
         else:
@@ -81,7 +81,7 @@ class Client(Host):
         self.handler.do_neighbour_client_request(connection)
 
     def __connect_via_server(self):
-        logger.info('')
+        logger.debug('')
         server_data = Peers().get_random_server_from_file()
         if server_data:
             self.__do_neighbour_client_request_to_server(server_data)
@@ -89,7 +89,7 @@ class Client(Host):
         raise Exception('Error: no server data in peers.json file')
 
     def __do_neighbour_client_request_to_server(self, server_data):
-        logger.info('')
+        logger.debug('')
         server_protocol = server_data['protocol']
         if server_protocol == 'udp':
             self.__udp_neighbour_client_request_to_server(server_data)
@@ -97,11 +97,11 @@ class Client(Host):
             raise Exception('Error: {} protocol handler not implemented yet'.format(server_protocol))
 
     def __udp_neighbour_client_request_to_server(self, server_data):
-        logger.info('')
-        receiving_connection = self.create_connection((server_data['host'], server_data['port']))
-        receiving_connection.set_pub_key(server_data['pub_key'])
-        receiving_connection.type = server_data['type']
-        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        logger.debug('')
+        server_connection = self.create_connection((server_data['host'], server_data['port']))
+        server_connection.set_pub_key(server_data['pub_key'])
+        server_connection.type = server_data['type']
+        server_connection.set_encrypt_marker(settings.request_encrypted_protocol)
         self.handler().hpn_neighbour_client_request(
-            receiving_connection=receiving_connection
+            connection=server_connection
         )
