@@ -63,7 +63,7 @@ class ClientHandler(Handler):
                 continue
             attempt_connect -= 1
             time_message_send = time.time()
-            logger.warn('message hpn_servers_request was lasted')
+            logger.warn('message hpn_servers_request was lost')
             self.send(
                 receiving_connection=receiving_connection,
                 message=message,

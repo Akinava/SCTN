@@ -62,7 +62,7 @@ class Client(Host):
             return False
         if self.swarm_status == 'in progress':
             self.swarm_status = 'done'
-            self.init()
+            self.handler().init()
         return True
 
     def __has_server_connection(self):
@@ -78,7 +78,7 @@ class Client(Host):
 
     def __connect_via_client(self):
         connection = self.net_pool.get_random_client_connection()
-        self.handler.do_neighbour_client_request(connection)
+        self.handler().do_neighbour_client_request(connection)
 
     def __connect_via_server(self):
         logger.debug('')

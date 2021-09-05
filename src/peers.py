@@ -83,17 +83,17 @@ class Peers(Singleton):
         self.__unpack_peers_property()
 
     def __save(self):
-        self.__pack_peers_property()
-        self.__save_file()
+        packed_peers = self.__pack_peers_property()
+        self.__save_file(packed_peers)
 
     def __read_file(self):
         with open(settings.peers_file, 'r') as f:
             peers_list = json.loads(f.read())
         return peers_list
 
-    def __save_file(self):
+    def __save_file(self, packed_peers):
         with open(settings.peers_file, 'w') as f:
-            f.write(json.dumps(self.__peers, indent=4))
+            f.write(json.dumps(packed_peers, indent=4))
 
     def __unpack_peers_property(self):
         #logger.debug('')
@@ -102,8 +102,12 @@ class Peers(Singleton):
 
     def __pack_peers_property(self):
         logger.debug('')
+        packed_peers = []
         for peer in self.__peers:
-            peer['pub_key'] = B58().pack(peer['pub_key'])
+            copied_peer = peer.copy()
+            copied_peer['pub_key'] = B58().pack(copied_peer['pub_key'])
+            packed_peers.append(copied_peer)
+        return packed_peers
 
     def __filter_peers_by_type(self, peers_filter):
         logger.debug('')

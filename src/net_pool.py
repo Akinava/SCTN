@@ -47,12 +47,15 @@ class NetPool(Singleton):
         self.__group[connection_index] = new_connection
 
     def copy_connection_property(self, new_connection, old_connection):
+        logger.info('src {}, dst {}'.format(old_connection, new_connection))
         new_connection.set_pub_key(old_connection.get_pub_key())
         new_connection.set_encrypt_marker(old_connection.get_encrypt_marker())
         new_connection.set_time_sent_message(old_connection.get_time_sent_message())
         new_connection.type = old_connection.type
+        print('__filter_connection_by_type', vars(new_connection))
 
     def __put_connection_in_group(self, connection):
+        logger.info(connection)
         self.__group.append(connection)
 
     def get_all_connections(self):
@@ -79,6 +82,8 @@ class NetPool(Singleton):
         self.__clean_groups()
         group = []
         for connection in self.__group:
+            print('__filter_connection_by_type', vars(connection))
+            # FIXME we can do not have a type!
             if connection.type == my_type:
                 group.append(connection)
         return group

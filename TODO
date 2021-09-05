@@ -27,21 +27,46 @@ test connect via client
 
 
 # docker
+h: export hpnc_instance=3
 h: docker pull python:3-alpine
-h: docker run -it --name=hpnc1 python:3-alpine /bin/sh
+h: docker run -it --name=hpnc${hpnc_instance} python:3-alpine /bin/sh
 
 d: mkdir -p /usr/src/hpnc/src
 d: mkdir -p /usr/src/hpnc/test
-
-h: docker cp requirements.txt hpnc1:/usr/src/hpnc
-h: for f in $(ls src); do echo $f; docker cp src/${f} hpnc1:/usr/src/hpnc/src; done
-h: for f in $(ls ../hpn_common/src/); do echo $f; docker cp ../hpn_common/src/${f} hpnc1:/usr/src/hpnc/src; done
-h: docker cp test/test_peer.py hpnc1:/usr/src/hpnc/test
-h: docker cp tmp/peers1.json hpnc1:/usr/src/hpnc/peers.json
-h: docker cp tmp/config1.json hpnc1:/usr/src/hpnc/config.json
-
 d: apk add g++
 d: apk add git
 d: /usr/local/bin/python3 -m pip install --upgrade pip
+
+h: docker cp requirements.txt hpnc${hpnc_instance}:/usr/src/hpnc/requirements.txt
+h: for f in $(ls src); do echo $f; docker cp src/${f} hpnc${hpnc_instance}:/usr/src/hpnc/src; done
+h: for f in $(ls ../hpn_common/src/); do echo $f; docker cp ../hpn_common/src/${f} hpnc${hpnc_instance}:/usr/src/hpnc/src; done
+h: docker cp test/test_peer.py hpnc${hpnc_instance}:/usr/src/hpnc/test/test_peer.py
+h: docker cp tmp/peers.json hpnc${hpnc_instance}:/usr/src/hpnc/peers.json
+h: docker cp tmp/config1.json hpnc${hpnc_instance}:/usr/src/hpnc/config.json
+
 d: pip install -r /usr/src/hpnc/requirements.txt
-d: python3 /usr/src/hpnc/test/test_peer.py -p /usr/src/hpnc/peers.json -c /usr/src/hpnc/config1.json -s /usr/src/hpnc/shadow
+d: python3 /usr/src/hpnc/test/test_peer.py -p /usr/src/hpnc/peers.json -c /usr/src/hpnc/config.json -s /usr/src/hpnc/shadow
+==============
+h: docker run -it --name=hpnc1 --volume $(pwd):/usr/src/app hpnc:dev /bin/sh
+d: python3 /usr/src/app/test/test_peer.py -p /usr/src/app/tmp/peers.json -c /usr/src/app/tmp/config1.json -s /usr/src/app/tmp/shadow
+
+docker diff hpnc
+docker export hpnc -o hpnc
+
+docker commit hpnc
+
+==============
+
+h: docker run -it --name=hpnc --volume $(pwd):/usr/src/app python:3-alpine /bin/sh
+d: apk add g++
+d: apk add git
+d: /usr/local/bin/python3 -m pip install --upgrade pip
+d: pip install -r /usr/src/app/requirements.txt
+
+h: docker commit hpnc
+h: docker tag 09ffc1f3baa8 hpnc:dev
+
+h: docker run -it --volume $(pwd):/usr/src/app --name=hpnc1 hpnc:dev /usr/src/app/tmp/run_app.sh
+
+
+python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/akinava/Projects/hpn_client/logs/hpnc_server.log
