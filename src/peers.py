@@ -110,7 +110,7 @@ class Peers(Singleton):
         return packed_peers
 
     def __filter_peers_by_type(self, peers_filter):
-        logger.debug('')
+        #logger.debug('')
         filtered_peers = []
         for peer in self.__peers:
             if peer['type'] != peers_filter:

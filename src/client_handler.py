@@ -25,50 +25,56 @@ class ClientHandler(Handler):
             message=message)
 
     def hpn_servers_request(self, connection):
-        receiving_connection = Connection(
-            transport=self.transport,
-            remote_addr=connection.get_unpack_request_part('neighbour_addr'))
-        receiving_connection.set_pub_key(connection.get_unpack_request_part('neighbour_pub_key'))
-        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        receiving_connection.type = 'client'
+        self.__thread_delivery_request_hpn_servers
+        self.run_stream(
+            target=self.__thread_delivery_request_hpn_servers,
+            hpn_server_connection=connection)
 
+    def __thread_delivery_request_hpn_servers(self, hpn_server_connection):
+        # TODO first strategy / move to
+        attempt_connect = 0
+        receiving_connection = None
+        while attempt_connect < settings.attempt_connect:
+            if self.__is_it_time_to_connect_with_neighbour(receiving_connection):
+                receiving_connection = self.__make_neighbour_connection_from_hpn_server_response(hpn_server_connection)
+                self.__send_hpn_servers_request(receiving_connection)
+                attempt_connect += 1
+            if self.__message_is_delivered(receiving_connection):
+                logger.debug('message hpn_servers_request was delivered')
+                return
+            time.sleep(0.1)
+        logger.warn('message hpn_servers_request was lost')
+        # TODO next strategy
+
+    def __send_hpn_servers_request(self, receiving_connection):
         message = self.make_message(
             package_protocol_name='hpn_servers_request',
             receiving_connection=receiving_connection)
-
-        self.__thread_handle_message_loss(
-            message=message,
-            receiving_connection=receiving_connection)
-
         self.send(
             message=message,
             receiving_connection=receiving_connection,
             package_protocol_name='hpn_servers_request')
 
-    def __thread_handle_message_loss(self, **kwargs):
-        self.run_stream(
-            target=self.handle_message_loss,
-            **kwargs)
+    def __is_it_time_to_connect_with_neighbour(self, receiving_connection):
+        if receiving_connection is None:
+            return True
+        if receiving_connection.message_was_never_sent():
+            return True
+        if receiving_connection.last_sent_message_is_over_time_out():
+            return True
+        return False
 
-    def handle_message_loss(self, receiving_connection, message):
-        time_message_send = time.time()
-        attempt_connect = settings.attempt_connect
-        while attempt_connect and (
-                receiving_connection.get_time_received_message() is None or \
-                time_message_send > receiving_connection.get_time_received_message()):
-            time.sleep(0.1)
-            receiving_connection = self.net_pool.get_connection(receiving_connection)
-            if time_message_send + settings.peer_ping_time_seconds > time.time():
-                receiving_connection
-                continue
-            attempt_connect -= 1
-            time_message_send = time.time()
-            logger.warn('message hpn_servers_request was lost')
-            self.send(
-                receiving_connection=receiving_connection,
-                message=message,
-                package_protocol_name='hpn_servers_request')
-        logger.debug('message hpn_servers_request was delivered')
+    def __message_is_delivered(self, receiving_connection):
+        return receiving_connection.message_was_never_received() is False
+
+    def __make_neighbour_connection_from_hpn_server_response(self, hpn_server_connection):
+        receiving_connection = Connection(
+            transport=self.transport,
+            remote_addr=hpn_server_connection.get_unpack_request_part('neighbour_addr'))
+        receiving_connection.set_pub_key(hpn_server_connection.get_unpack_request_part('neighbour_pub_key'))
+        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        receiving_connection.type = 'client'
+        return receiving_connection
 
     def hpn_servers_list(self, connection):
         message = self.make_message(

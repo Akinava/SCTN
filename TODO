@@ -66,7 +66,13 @@ d: pip install -r /usr/src/app/requirements.txt
 h: docker commit hpnc
 h: docker tag 09ffc1f3baa8 hpnc:dev
 
-h: docker run -it --volume $(pwd):/usr/src/app --name=hpnc1 hpnc:dev /usr/src/app/tmp/run_app.sh
+docker run -it --volume $(pwd):/usr/src/app --name=hpnc1 hpnc:dev /usr/src/app/tmp/run_app.sh
 
 
+docker start -i hpnc1
 python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/akinava/Projects/hpn_client/logs/hpnc_server.log
+
+
+# FIXME split connection and request items
+# request will have a connection
+# NetPool will work with connection
