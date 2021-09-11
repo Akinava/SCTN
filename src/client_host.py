@@ -10,11 +10,12 @@ import asyncio
 from settings import logger
 import settings
 from host import Host
-from client_handler import ClientHandler
-from client_net_pool import ClientNetPool
 from protocol import PROTOCOL
 from peers import Peers
+from request import Request
 from utilit import update_obj
+from client_handler import ClientHandler
+from client_net_pool import ClientNetPool
 
 
 class Client(Host):
@@ -97,13 +98,12 @@ class Client(Host):
 
     def __udp_neighbour_client_request_to_server(self, server_data):
         #logger.debug('')
-
         server_connection = self.create_connection(
             transport=self.default_listener,
             remote_addr=(server_data['host'], server_data['port']))
         server_connection.set_pub_key(server_data['pub_key'])
-        server_connection.type = server_data['type']
         server_connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        self.handler().hpn_neighbour_client_request(
-            connection=server_connection
-        )
+        server_connection.type = server_data['type']
+        request = Request(connection=server_connection)
+        request.set_package_protocol({'response': 'hpn_neighbour_client_request'})
+        self.handler().hpn_neighbour_client_request(received_request=request)

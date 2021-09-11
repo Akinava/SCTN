@@ -73,6 +73,8 @@ docker start -i hpnc1
 python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/akinava/Projects/hpn_client/logs/hpnc_server.log
 
 
-# FIXME split connection and request items
-# request will have a connection
-# NetPool will work with connection
+
+
+
+        import traceback
+        traceback.print_stack()

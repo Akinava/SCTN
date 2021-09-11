@@ -14,15 +14,9 @@ from peers import Peers
 
 
 class ClientHandler(Handler):
-    def hpn_neighbour_client_request(self, connection):
-        message = self.make_message(
-            package_protocol_name='hpn_neighbour_client_request',
-            receiving_connection=connection)
-
-        self.send(
-            package_protocol_name='hpn_neighbour_client_request',
-            receiving_connection=connection,
-            message=message)
+    def hpn_neighbour_client_request(self, received_request):
+        response = self.make_message(received_request=received_request)
+        self.send(response)
 
     def hpn_servers_request(self, connection):
         self.__thread_delivery_request_hpn_servers
@@ -118,7 +112,7 @@ class ClientHandler(Handler):
         return settings.request_encrypted_protocol is True
 
     def _get_marker_package_id_marker(self, **kwargs):
-        return self.protocol['packages'][kwargs['package_protocol_name']]['package_id_marker']
+        return self.parser().protocol.packages[kwargs['package_protocol_name']].package_id_marker
 
     def get_requester_pub_key(self, **kwargs):
         return self.crypt_tools.get_pub_key()
