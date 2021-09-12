@@ -12,8 +12,8 @@ import settings
 from host import Host
 from protocol import PROTOCOL
 from peers import Peers
-from request import Request
-from utilit import update_obj
+from datagram import Datagram
+from utilit import update_obj, JObj
 from client_handler import ClientHandler
 from client_net_pool import ClientNetPool
 
@@ -46,7 +46,7 @@ class Client(Host):
             setattr(self.handler, func_name, func)
 
     async def __serve_swarm(self):
-        # logger.debug('')
+        logger.debug('')
         while not self.default_listener.is_closing():
             if self.__has_enough_client_connections():
                 await asyncio.sleep(settings.peer_timeout_seconds)
@@ -104,6 +104,6 @@ class Client(Host):
         server_connection.set_pub_key(server_data['pub_key'])
         server_connection.set_encrypt_marker(settings.request_encrypted_protocol)
         server_connection.type = server_data['type']
-        request = Request(connection=server_connection)
-        request.set_package_protocol({'response': 'hpn_neighbour_client_request'})
-        self.handler().hpn_neighbour_client_request(received_request=request)
+        request = Datagram(connection=server_connection)
+        request.set_package_protocol(JObj({'response': 'hpn_neighbour_client_request'}))
+        self.handler().hpn_neighbour_client_request(request=request)

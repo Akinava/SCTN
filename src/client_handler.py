@@ -8,17 +8,18 @@ __version__ = [0, 0]
 import time
 from handler import Handler
 from connection import Connection
+from datagram import Datagram
 import settings
 from settings import logger
 from peers import Peers
 
 
 class ClientHandler(Handler):
-    def hpn_neighbour_client_request(self, received_request):
-        message = self.make_message(received_request=received_request)
-        self.send(message=message,
-                  package_protocol_name=received_request.package_protocol.response,
-                  receiving_connection=received_request.connection)
+    def hpn_neighbour_client_request(self, request):
+        response = Datagram(request.connection)
+        message = self.make_message(request=request, response=response)
+        response.set_decrypted_message(message)
+        self.send(response=response)
 
     def hpn_servers_request(self, connection):
         self.__thread_delivery_request_hpn_servers
@@ -114,7 +115,7 @@ class ClientHandler(Handler):
         return settings.request_encrypted_protocol is True
 
     def _get_marker_package_id_marker(self, **kwargs):
-        return kwargs['response_package_protocol'].package_id_marker
+        return kwargs['response'].package_protocol.package_id_marker
 
     def get_requester_pub_key(self, **kwargs):
         return self.crypt_tools.get_pub_key()
