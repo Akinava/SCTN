@@ -48,11 +48,12 @@ class Client(Host):
     async def __serve_swarm(self):
         logger.debug('')
         while not self.default_listener.is_closing():
+            logger.debug('')
             if self.__has_enough_client_connections():
-                await asyncio.sleep(settings.peer_timeout_seconds)
+                await asyncio.sleep(settings.peer_ping_time_seconds)
                 continue
             if self.__has_server_connection():
-                await asyncio.sleep(settings.peer_timeout_seconds)
+                await asyncio.sleep(settings.peer_ping_time_seconds)
                 continue
             self.__find_new_connections()
 
@@ -107,3 +108,4 @@ class Client(Host):
         request = Datagram(connection=server_connection)
         request.set_package_protocol(JObj({'response': 'hpn_neighbour_client_request'}))
         self.handler().hpn_neighbour_client_request(request=request)
+        self.net_pool.add_connection(server_connection)
