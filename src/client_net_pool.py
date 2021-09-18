@@ -14,12 +14,15 @@ import settings
 
 class ClientNetPool(NetPool):
     def has_enough_connections(self):
-        #logger.debug('')
         return len(self.get_all_client_connections()) >= settings.peer_connections
-
 
     def get_connection(self, connection):
         return self.__group[self.__group.index(connection)]
+
+    def get_connection_by_fingerprint(self, fingerprint):
+        for connection in self.get_all_connections():
+            if connection.get_fingerprint() == fingerprint:
+                return connection
 
     def copy_connection_property(self, src_connection, dst_connection):
         logger.info('src {}, dst {}'.format(src_connection, dst_connection))

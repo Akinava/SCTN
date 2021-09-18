@@ -16,52 +16,51 @@ from utilit import JObj
 
 
 class ClientHandler(Handler):
-    def hpn_neighbour_client_request(self, request):
+    def extended_get_pub_key(self, request):
+        fingerprint = request.raw_message[: self.fingerprint_length]
+        connection = self.net_pool.get_connection_by_fingerprint(fingerprint)
+        if connection is None:
+            return None
+        return connection.get_pub_key()
+
+    def hpn_neighbours_client_request(self, request):
         response = Datagram(request.connection)
+        self.delivery_watcher(request, response)
+
+    def __do_hpn_servers_request(self, request, receiving_connection):
+        response = Datagram(receiving_connection)
+        self.delivery_watcher(request, response)
+
+    def delivery_watcher(self, request, response):
+        self.crypt_tools.add_trusted_key(response.connection.get_pub_key())
         self.send(request=request, response=response)
+
+        # FIXME delivery report
+        # if delivered:
+        #     self.net_pool.add_connection(request.connection)
+        # synchronization_trusted_keys() self.net_pool.connections_list and self.crypt_tools.trusted_keys
 
     def hpn_servers_request(self, request):
-        # TODO first strategy / move to funk
-        attempt_connect = 0
-        receiving_connection = None
-        last_send_time = time.time()
-        while attempt_connect < settings.attempt_connect:
-            if self.__is_it_time_to_connect_with_neighbour(last_send_time, receiving_connection):
-                receiving_connection = self.__make_neighbour_connection_from_hpn_server_response(request)
-                self.__send_hpn_servers_request(request, receiving_connection)
-                attempt_connect += 1
-                last_send_time = time.time()
-            if self.__message_is_delivered(receiving_connection):
-                logger.debug('message hpn_servers_request was delivered')
-                return
-            time.sleep(0.1)
-        logger.warn('message hpn_servers_request was lost')
-        # TODO next strategy
+        neighbours_connections = self.__get_neighbours_connections_from_hpn_server_response(request)
+        for receiving_connection in neighbours_connections:
+            self.run_stream(target=self.__do_hpn_servers_request, request=request, receiving_connection=receiving_connection)
 
-    def __send_hpn_servers_request(self, request, receiving_connection):
-        response = Datagram(receiving_connection)
-        self.send(request=request, response=response)
+    def __get_neighbours_connections_from_hpn_server_response(self, request):
+        neighbours_data_list = request.unpack_message.hpn_clients_list
+        neighbours_connections = []
+        for neighbour_data in neighbours_data_list:
+            neighbours_connections.append(self.__get_neighbour_connection(neighbour_data))
+        return neighbours_connections
 
-    def __is_it_time_to_connect_with_neighbour(self, last_send_time, receiving_connection):
-        if receiving_connection is None:
-            return True
-        if receiving_connection.message_was_never_sent():
-            return True
-        return last_send_time + settings.peer_ping_time_seconds < time.time()
-
-    def __message_is_delivered(self, receiving_connection):
-        return receiving_connection.message_was_never_received() is False
-
-    def __make_neighbour_connection_from_hpn_server_response(self, request):
-        neighbour_addr = request.unpack_message.neighbour_addr
-        receiving_connection = self.net_pool.create_connection(
-            remote_addr=neighbour_addr._property,
+    def __get_neighbour_connection(self, neighbour_data):
+        neighbour_connection = self.net_pool.create_connection(
+            remote_addr=neighbour_data.hpn_clients_addr._property,
             transport=self.transport,
         )
-        receiving_connection.set_pub_key(request.unpack_message.neighbour_pub_key)
-        receiving_connection.set_encrypt_marker(settings.request_encrypted_protocol)
-        receiving_connection.type = 'client'
-        return receiving_connection
+        neighbour_connection.set_pub_key(neighbour_data.hpn_clients_pub_key)
+        neighbour_connection.set_encrypt_marker(settings.request_encrypted_protocol)
+        neighbour_connection.type = 'client'
+        return neighbour_connection
 
     def hpn_servers_list(self, request):
         response = Datagram(request.connection)

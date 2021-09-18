@@ -13,6 +13,7 @@ docker start -i sctn_0
 # run client local
 python3 test/test_peer.py -p tmp/peers.json -c tmp/config1.json -s tmp/shadow1
 python3 test/test_peer.py -p tmp/peers.json -c tmp/config2.json -s tmp/shadow2
+python3 test/test_peer.py -p tmp/peers.json -c tmp/config3.json -s tmp/shadow3
 
 # run server local
 python3 src/server_host.py -c docker/config.json -s docker/shadow
@@ -68,13 +69,14 @@ h: docker tag 09ffc1f3baa8 hpnc:dev
 
 docker run -it --volume $(pwd):/usr/src/app --name=hpnc1 hpnc:dev /usr/src/app/tmp/run_app.sh
 
-
+# start client in docker
 docker start -i hpnc1
+# start server
 python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/akinava/Projects/hpn_client/logs/hpnc_server.log
 
 
 
 
 
-        import traceback
-        traceback.print_stack()
+import traceback
+traceback.print_stack()
