@@ -7,7 +7,6 @@ __version__ = [0, 0]
 
 import time
 from handler import Handler
-from connection import Connection
 from datagram import Datagram
 import settings
 from settings import logger
@@ -17,28 +16,42 @@ from utilit import JObj
 
 class ClientHandler(Handler):
     def extended_get_pub_key(self, request):
+        def copy_connection_property(connection_src, connection_dst):
+            connection_dst.set_pub_key(connection_src.get_pub_key())
+            connection_dst.set_encrypt_marker(connection_src.get_encrypt_marker())
+            connection_dst.sent_message_time = connection_src.sent_message_time
+
         fingerprint = request.raw_message[: self.fingerprint_length]
         connection = self.net_pool.get_connection_by_fingerprint(fingerprint)
         if connection is None:
             return None
+
+        copy_connection_property(connection, request.connection)
         return connection.get_pub_key()
 
     def hpn_neighbours_client_request(self, request):
         response = Datagram(request.connection)
-        self.delivery_watcher(request, response)
+        self.run_stream(target=self.__delivery_watcher, request=request, response=response)
 
     def __do_hpn_servers_request(self, request, receiving_connection):
         response = Datagram(receiving_connection)
-        self.delivery_watcher(request, response)
+        self.run_stream(target=self.__delivery_watcher, request=request, response=response)
 
-    def delivery_watcher(self, request, response):
-        self.crypt_tools.add_trusted_key(response.connection.get_pub_key())
-        self.send(request=request, response=response)
+    def __delivery_watcher(self, request, response):
+        def sent_message_is_over_time_out(sent_message_time):
+            return sent_message_time + settings.peer_timeout_seconds < time.time()
 
-        # FIXME delivery report
-        # if delivered:
-        #     self.net_pool.add_connection(request.connection)
-        # synchronization_trusted_keys() self.net_pool.connections_list and self.crypt_tools.trusted_keys
+        first_sent_message_time = time.time()
+        self.net_pool.add_connection(response.connection)
+        while response.connection.message_was_never_received():
+            if response.connection.last_sent_message_is_over_ping_time():
+                self.send(request=request, response=response)
+            if sent_message_is_over_time_out(first_sent_message_time):
+                logger.warn('message {} for {} is lost'.format(response.package_protocol.name, response.connection))
+                self.net_pool.disconnect(response.connection)
+                return
+            time.sleep(1)
+        logger.debug('message {} for {} is delivered'.format(response.package_protocol.name, response.connection))
 
     def hpn_servers_request(self, request):
         neighbours_connections = self.__get_neighbours_connections_from_hpn_server_response(request)

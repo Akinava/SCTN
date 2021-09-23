@@ -98,12 +98,16 @@ class Client(Host):
 
     def __udp_neighbour_client_request_to_server(self, server_data):
         #logger.debug('')
+        server_connection = self.__make_server_connection(server_data)
+        request = Datagram(connection=server_connection)
+        request.set_package_protocol(JObj({'response': 'hpn_neighbours_client_request'}))
+        self.handler().hpn_neighbours_client_request(request=request)
+
+    def __make_server_connection(self, server_data):
         server_connection = self.create_connection(
             transport=self.default_listener,
             remote_addr=(server_data['host'], server_data['port']))
         server_connection.set_pub_key(server_data['pub_key'])
         server_connection.set_encrypt_marker(settings.request_encrypted_protocol)
         server_connection.type = server_data['type']
-        request = Datagram(connection=server_connection)
-        request.set_package_protocol(JObj({'response': 'hpn_neighbours_client_request'}))
-        self.handler().hpn_neighbours_client_request(request=request)
+        return server_connection
