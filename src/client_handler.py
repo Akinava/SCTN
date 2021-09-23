@@ -50,7 +50,7 @@ class ClientHandler(Handler):
                 logger.warn('message {} for {} is lost'.format(response.package_protocol.name, response.connection))
                 self.net_pool.disconnect(response.connection)
                 return
-            time.sleep(1)
+            time.sleep(0.1)
         logger.debug('message {} for {} is delivered'.format(response.package_protocol.name, response.connection))
 
     def hpn_servers_request(self, request):
