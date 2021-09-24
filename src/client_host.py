@@ -13,7 +13,7 @@ from host import Host
 from protocol import PROTOCOL
 from peers import Peers
 from datagram import Datagram
-from utilit import update_obj, JObj
+from utilit import update_obj, JObj, Stream
 from client_handler import ClientHandler
 from client_net_pool import ClientNetPool
 
@@ -22,9 +22,11 @@ class Client(Host):
     def __init__(self, handler, protocol):
         #logger.debug('')
         extended_protocol = self.__extend_protocol(PROTOCOL, protocol)
-        super(Client, self).__init__(net_pool=ClientNetPool, handler=ClientHandler, protocol=extended_protocol)
-        self.__extend_handler(handler)
-        self.swarm_status = 'in progress'
+        extended_handler = self.__extend_handler(handler)
+        super(Client, self).__init__(net_pool=ClientNetPool, handler=extended_handler, protocol=extended_protocol)
+        # super(Client, self).__init__(net_pool=ClientNetPool, handler=ClientHandler, protocol=extended_protocol)
+        # self.__extend_handler(handler)
+        self.net_pool.swarm_status = 'in progress'
 
     async def run(self):
         #logger.debug('')
@@ -38,32 +40,28 @@ class Client(Host):
         #logger.debug('')
         return update_obj(base_protocol, client_protocol)
 
-    def __extend_handler(self, handler):
-        for func_name in dir(handler):
-            if hasattr(self.handler, func_name):
-                continue
-            func = getattr(handler, func_name)
-            setattr(self.handler, func_name, func)
+    def __extend_handler(self, user_handler):
+        class ExtendHandler(user_handler, ClientHandler):
+            pass
+        return ExtendHandler
+
+    # def __extend_handler(self, handler):
+    #     for func_name in dir(handler):
+    #         if hasattr(self.handler, func_name):
+    #             continue
+    #         func = getattr(handler, func_name)
+    #         setattr(self.handler, func_name, func)
 
     async def __serve_swarm(self):
         logger.debug('')
         while not self.default_listener.is_closing():
-            if self.__has_enough_client_connections():
+            if self.net_pool.has_enough_client_connections():
                 await asyncio.sleep(settings.peer_ping_time_seconds)
                 continue
             if self.__has_server_connection():
                 await asyncio.sleep(settings.peer_ping_time_seconds)
                 continue
             self.__find_new_connections()
-
-    def __has_enough_client_connections(self):
-        #logger.debug('')
-        if not self.net_pool.has_enough_connections():
-            return False
-        if self.swarm_status == 'in progress':
-            self.swarm_status = 'done'
-            self.handler().init()
-        return True
 
     def __has_server_connection(self):
         #logger.debug('')
@@ -101,12 +99,10 @@ class Client(Host):
         server_connection = self.__make_server_connection(server_data)
         request = Datagram(connection=server_connection)
         request.set_package_protocol(JObj({'response': 'hpn_neighbours_client_request'}))
-        self.handler().hpn_neighbours_client_request(request=request)
+        Stream().run_stream(target=self.handler().hpn_neighbours_client_request, request=request)
 
     def __make_server_connection(self, server_data):
-        server_connection = self.create_connection(
-            transport=self.default_listener,
-            remote_addr=(server_data['host'], server_data['port']))
+        server_connection = self.net_pool.create_connection((server_data['host'], server_data['port']), self.default_listener)
         server_connection.set_pub_key(server_data['pub_key'])
         server_connection.set_encrypt_marker(settings.request_encrypted_protocol)
         server_connection.type = server_data['type']

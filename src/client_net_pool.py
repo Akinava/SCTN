@@ -13,7 +13,7 @@ import settings
 
 
 class ClientNetPool(NetPool):
-    def has_enough_connections(self):
+    def has_enough_client_connections(self):
         return len(self.get_all_client_connections()) >= settings.peer_connections
 
     def get_connection(self, connection):
