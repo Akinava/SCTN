@@ -75,13 +75,13 @@ class Handler:
             request.set_package_protocol(JObj({'response': 'test_peer_hello'}))
             self.test_peer_hello(request)
 
-            # also can we can got test_peer_hello in the past, now we need response on it with test_peer_time
-            if hasattr(connection, 'swarm_status'):
+            # also we could get test_peer_hello in the past, now we need response on it with test_peer_time
+            if hasattr(connection, 'swarm_status') and connection.swarm_status == 'done':
                 request.set_package_protocol(JObj({'response': 'test_peer_time'}))
                 self.test_peer_time(request)
 
     def test_peer_hello(self, request):
-        logger.info('')
+        # logger.info('')
         if self.net_pool.swarm_status != 'done':
             request.connection.swarm_status = 'done'
             return
@@ -93,9 +93,7 @@ class Handler:
         self.send(request=request, response=response)
 
     def show_peer_time(self, request):
-        logger.warning('>'*10)
         logger.warning('peer_time {} from host {}'.format(request.unpack_message.peer_time, request.connection))
-        logger.warning('<'*10)
 
     def get_major_protocol_version_marker(self, **kwargs):
         return self.parser().protocol.protocol_version[0]

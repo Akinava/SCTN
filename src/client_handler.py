@@ -31,13 +31,13 @@ class ClientHandler(Handler):
 
     def hpn_neighbours_client_request(self, request):
         response = Datagram(request.connection)
-        if self.__delivered_by_direct_send(request, response):
-            self.__has_enough_client_connections()
-        # TODO next delivery strategy
+        self.__delivered_by_direct_send(request, response)
 
     def __do_hpn_servers_request(self, request, receiving_connection):
         response = Datagram(receiving_connection)
-        self.__delivered_by_direct_send(request, response)
+        if self.__delivered_by_direct_send(request, response):
+            self.__has_enough_client_connections()
+        # TODO next delivery strategy
 
     def __delivered_by_direct_send(self, request, response):
         def sent_message_is_over_time_out(sent_message_time):
@@ -49,11 +49,11 @@ class ClientHandler(Handler):
             if response.connection.last_sent_message_is_over_ping_time():
                 self.send(request=request, response=response)
             if sent_message_is_over_time_out(first_sent_message_time):
-                logger.warn('message {} for {} is lost'.format(response.package_protocol.name, response.connection))
+                logger.warn('message {} to {} is lost'.format(response.package_protocol.name, response.connection))
                 self.net_pool.disconnect(response.connection)
                 return False
             time.sleep(0.1)
-        logger.debug('message {} for {} is delivered'.format(response.package_protocol.name, response.connection))
+        logger.debug('message {} to {} is delivered'.format(response.package_protocol.name, response.connection))
         return True
 
     def hpn_servers_request(self, request):
@@ -124,7 +124,7 @@ class ClientHandler(Handler):
         Peers().save_servers_list(hpn_servers_list)
 
     def __has_enough_client_connections(self):
-        logger.info('')
+        # logger.info('')
         if self.net_pool.swarm_status != 'in progress':
             return
         if not self.net_pool.has_enough_client_connections():
@@ -132,5 +132,5 @@ class ClientHandler(Handler):
         self.net_pool.swarm_status = 'done'
         if not hasattr(self, 'init'):
             return
-        logger.info('init')
+        # logger.info('init')
         self.init()

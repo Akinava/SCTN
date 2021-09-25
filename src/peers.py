@@ -101,7 +101,7 @@ class Peers(Singleton):
             peer['pub_key'] = B58().unpack(peer['pub_key'])
 
     def __pack_peers_property(self):
-        logger.debug('')
+        # logger.debug('')
         packed_peers = []
         for peer in self.__peers:
             copied_peer = peer.copy()
