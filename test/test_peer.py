@@ -92,6 +92,11 @@ class Handler:
         response = Datagram(connection=request.connection)
         self.send(request=request, response=response)
 
+    def show_peer_time(self, request):
+        logger.warning('>'*10)
+        logger.warning('peer_time {} from host {}'.format(request.unpack_message.peer_time, request.connection))
+        logger.warning('<'*10)
+
     def get_major_protocol_version_marker(self, **kwargs):
         return self.parser().protocol.protocol_version[0]
 
