@@ -7,7 +7,6 @@ __version__ = [0, 0]
 
 
 import asyncio
-from settings import logger
 import settings
 from host import Host
 from protocol import PROTOCOL
@@ -20,16 +19,12 @@ from client_net_pool import ClientNetPool
 
 class Client(Host):
     def __init__(self, handler, protocol):
-        #logger.debug('')
         extended_protocol = self.__extend_protocol(PROTOCOL, protocol)
         extended_handler = self.__extend_handler(handler)
         super(Client, self).__init__(net_pool=ClientNetPool, handler=extended_handler, protocol=extended_protocol)
-        # super(Client, self).__init__(net_pool=ClientNetPool, handler=ClientHandler, protocol=extended_protocol)
-        # self.__extend_handler(handler)
         self.net_pool.swarm_status = 'in progress'
 
     async def run(self):
-        #logger.debug('')
         await self.create_default_listener()
         ping_task = asyncio.create_task(self.ping())
         swarm_task = asyncio.create_task(self.__serve_swarm())
@@ -37,7 +32,6 @@ class Client(Host):
         await swarm_task
 
     def __extend_protocol(self, base_protocol, client_protocol):
-        #logger.debug('')
         return update_obj(base_protocol, client_protocol)
 
     def __extend_handler(self, user_handler):
@@ -45,15 +39,7 @@ class Client(Host):
             pass
         return ExtendHandler
 
-    # def __extend_handler(self, handler):
-    #     for func_name in dir(handler):
-    #         if hasattr(self.handler, func_name):
-    #             continue
-    #         func = getattr(handler, func_name)
-    #         setattr(self.handler, func_name, func)
-
     async def __serve_swarm(self):
-        logger.debug('')
         while not self.default_listener.is_closing():
             if self.net_pool.has_enough_client_connections():
                 await asyncio.sleep(settings.peer_ping_time_seconds)
@@ -64,11 +50,9 @@ class Client(Host):
             self.__find_new_connections()
 
     def __has_server_connection(self):
-        #logger.debug('')
         return len(self.net_pool.get_server_connections()) > 0
 
     def __find_new_connections(self):
-        #logger.debug('')
         if self.net_pool.has_client_connection():
             self.__connect_via_client()
         else:
@@ -79,7 +63,6 @@ class Client(Host):
         self.handler().do_neighbour_client_request(connection)
 
     def __connect_via_server(self):
-        #logger.debug('')
         server_data = Peers().get_random_server_from_file()
         if server_data:
             self.__do_neighbour_client_request_to_server(server_data)
@@ -87,7 +70,6 @@ class Client(Host):
         raise Exception('Error: no server data in peers.json file')
 
     def __do_neighbour_client_request_to_server(self, server_data):
-        #logger.debug('')
         server_protocol = server_data['protocol']
         if server_protocol == 'udp':
             self.__udp_neighbour_client_request_to_server(server_data)
@@ -95,7 +77,6 @@ class Client(Host):
             raise Exception('Error: {} protocol handler not implemented yet'.format(server_protocol))
 
     def __udp_neighbour_client_request_to_server(self, server_data):
-        #logger.debug('')
         server_connection = self.__make_server_connection(server_data)
         request = Datagram(connection=server_connection)
         request.set_package_protocol(JObj({'response': 'hpn_neighbours_client_request'}))

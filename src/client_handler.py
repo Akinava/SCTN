@@ -109,9 +109,7 @@ class ClientHandler(Handler):
         return kwargs['server_data'].protocol
 
     def get_hpn_servers_addr(self, **kwargs):
-        host = kwargs['server_data'].host
-        port = kwargs['server_data'].port
-        return host, port
+        return kwargs['server_data'].host, kwargs['server_data'].port
 
     def get_encrypted_request_marker(self, **kwargs):
         return 1 if settings.request_encrypted_protocol else 0
@@ -124,7 +122,6 @@ class ClientHandler(Handler):
         Peers().save_servers_list(hpn_servers_list)
 
     def __has_enough_client_connections(self):
-        # logger.info('')
         if self.net_pool.swarm_status != 'in progress':
             return
         if not self.net_pool.has_enough_client_connections():
@@ -132,5 +129,4 @@ class ClientHandler(Handler):
         self.net_pool.swarm_status = 'done'
         if not hasattr(self, 'init'):
             return
-        # logger.info('init')
         self.init()

@@ -31,11 +31,9 @@ class ClientNetPool(NetPool):
         dst_connection.type = src_connection.type
 
     def __put_connection_in_group(self, connection):
-        #logger.info(connection)
         self.__group.append(connection)
 
     def get_all_client_connections(self):
-        #logger.debug('')
         return self.__filter_connection_by_type('client')
 
     def get_random_client_connection(self):
@@ -43,7 +41,6 @@ class ClientNetPool(NetPool):
         return random.choice(group) if group else None
 
     def get_server_connections(self):
-        #logger.debug('')
         return self.__filter_connection_by_type('server')
 
     def has_client_connection(self):
@@ -51,12 +48,9 @@ class ClientNetPool(NetPool):
         return len(group) > 0
 
     def __filter_connection_by_type(self, my_type):
-        # import traceback
-        # traceback.print_stack()
         self.clean_connections_list()
         group = []
         for connection in self.connections_list:
             if hasattr(connection, 'type') and connection.type == my_type:
                 group.append(connection)
         return group
-

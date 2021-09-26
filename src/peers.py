@@ -11,13 +11,11 @@ import random
 from datetime import timedelta
 from cryptotool import B58
 from utilit import Singleton, str_to_datetime, now
-from settings import logger
 import settings
 
 
 class Peers(Singleton):
     def __init__(self):
-        #logger.debug('')
         self.__load()
 
     def save_servers_list(self, servers_list):
@@ -46,7 +44,6 @@ class Peers(Singleton):
         return False
 
     def get_random_server_from_file(self):
-        #logger.debug('')
         servers = self.__filter_peers_by_type('server')
         if not servers:
             return None
@@ -54,7 +51,6 @@ class Peers(Singleton):
         return random.choice(servers)
 
     def __find_peer(self, filter_kwargs):
-        logger.debug('')
         for peer in self.__peers:
             for key, val in filter_kwargs.items():
                 if peer.get(key) != val:
@@ -96,12 +92,10 @@ class Peers(Singleton):
             f.write(json.dumps(packed_peers, indent=4))
 
     def __unpack_peers_property(self):
-        #logger.debug('')
         for peer in self.__peers:
             peer['pub_key'] = B58().unpack(peer['pub_key'])
 
     def __pack_peers_property(self):
-        # logger.debug('')
         packed_peers = []
         for peer in self.__peers:
             copied_peer = peer.copy()
@@ -110,7 +104,6 @@ class Peers(Singleton):
         return packed_peers
 
     def __filter_peers_by_type(self, peers_filter):
-        #logger.debug('')
         filtered_peers = []
         for peer in self.__peers:
             if peer['type'] != peers_filter:
