@@ -16,7 +16,6 @@ sys.path.append(os.path.join(path, 'src'))
 
 from client_host import Client
 from datagram import Datagram
-from utilit import JObj
 from settings import logger
 from utilit import now
 from crypt_tools import Tools as CryptTools
@@ -24,7 +23,7 @@ from crypt_tools import Tools as CryptTools
 
 PROTOCOL = {
     'protocol_version': __version__,
-    'packages': [
+    'package': [
         {
             'name': 'test_peer_hello',
             'package_id_marker': 0x80,
@@ -57,7 +56,7 @@ PROTOCOL = {
                 {'name': 'peer_time', 'length': len(now()), 'type': 'str'}]
         }
     ],
-    'markers': [
+    'marker': [
         {'name': 'major_protocol_version_marker', 'start_bit': 0, 'length': 4, 'type': 'int_marker'},
         {'name': 'minor_protocol_version_marker', 'start_bit': 4, 'length': 4, 'type': 'int_marker'},
     ],
@@ -72,7 +71,7 @@ class Handler:
         for connection in self.net_pool.get_all_client_connections():
         # we can use same connection mark about received
             request = Datagram(connection=connection)
-            request.set_package_protocol(JObj({'response': 'test_peer_hello'}))
+            request.set_package_protocol({'response': 'test_peer_hello'})
             self.test_peer_hello(request)
 
             # also we could get test_peer_hello in the past, now we need response on it with test_peer_time
@@ -93,21 +92,21 @@ class Handler:
         self.send(request=request, response=response)
 
     def show_peer_time(self, request):
-        logger.warning('peer_time {} from host {}'.format(request.unpack_message.peer_time, request.connection))
+        logger.warning('peer_time {} from host {}'.format(request.unpack_message['peer_time'], request.connection))
 
     def get_major_protocol_version_marker(self, **kwargs):
-        return self.parser().protocol.protocol_version[0]
+        return self.parser().protocol['protocol_version'][0]
 
     def get_minor_protocol_version_marker(self, **kwargs):
-        return self.parser().protocol.protocol_version[1]
+        return self.parser().protocol['protocol_version'][1]
 
     def get_peer_time(self, **kwargs):
         return now()
 
     def verify_protocol_version(self, parser):
-        if parser.unpack_package.major_protocol_version_marker > parser.protocol.protocol_version[0]:
+        if parser.unpack_package()['major_protocol_version_marker'] > parser.protocol['protocol_version'][0]:
             return False
-        if parser.unpack_package.minor_protocol_version_marker > parser.protocol.protocol_version[1]:
+        if parser.unpack_package()['minor_protocol_version_marker'] > parser.protocol['protocol_version'][1]:
             return False
         return True
 

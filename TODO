@@ -80,3 +80,8 @@ python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/a
 
 import traceback
 traceback.print_stack()
+
+check client save
+check client over docker
+check client via another net
+make swarm via client

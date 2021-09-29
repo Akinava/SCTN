@@ -5,13 +5,13 @@ __copyright__ = 'Copyright © 2019'
 __license__ = 'MIT License'
 __version__ = [0, 0]
 
+
 import time
 from handler import Handler
 from datagram import Datagram
 import settings
 from settings import logger
 from peers import Peers
-from utilit import JObj
 
 
 class ClientHandler(Handler):
@@ -36,6 +36,7 @@ class ClientHandler(Handler):
     def __do_hpn_servers_request(self, request, receiving_connection):
         response = Datagram(receiving_connection)
         if self.__delivered_by_direct_send(request, response):
+            Peers().add_client_peer(receiving_connection)
             self.__has_enough_client_connections()
         # TODO next delivery strategy
 
@@ -49,25 +50,32 @@ class ClientHandler(Handler):
             if response.connection.last_sent_message_is_over_ping_time():
                 self.send(request=request, response=response)
             if sent_message_is_over_time_out(first_sent_message_time):
-                logger.warn('message {} to {} is lost'.format(response.package_protocol.name, response.connection))
+                logger.warn('message {} to {} is lost'.format(response.package_protocol['name'], response.connection))
                 self.net_pool.disconnect(response.connection)
                 return False
             time.sleep(0.1)
-        logger.debug('message {} to {} is delivered'.format(response.package_protocol.name, response.connection))
+        logger.debug('message {} to {} is delivered'.format(response.package_protocol['name'], response.connection))
         return True
 
     def hpn_servers_request(self, request):
         self.__handle_disconnect_flag(request)
         neighbours_connections = self.__get_neighbours_connections_from_hpn_server_response(request)
         for receiving_connection in neighbours_connections:
+            if self.__known_connection(receiving_connection):
+                logger.debug('connection {} exist in net_pool'.format(receiving_connection))
+                continue
             self.run_stream(target=self.__do_hpn_servers_request, request=request, receiving_connection=receiving_connection)
 
+    def __known_connection(self, connection):
+        return connection in self.net_pool.get_all_client_connections()
+
     def __handle_disconnect_flag(self, request):
-        if request.unpack_message.disconnect_flag:
+        if request.unpack_message['disconnect_flag']:
             self.net_pool.disconnect(request.connection)
+            Peers().update_peer_last_response_field(request.connection)
 
     def __get_neighbours_connections_from_hpn_server_response(self, request):
-        neighbours_data_list = request.unpack_message.hpn_clients_list
+        neighbours_data_list = request.unpack_message['hpn_clients_list']
         neighbours_connections = []
         for neighbour_data in neighbours_data_list:
             neighbours_connections.append(self.__get_neighbour_connection(neighbour_data))
@@ -75,10 +83,10 @@ class ClientHandler(Handler):
 
     def __get_neighbour_connection(self, neighbour_data):
         neighbour_connection = self.net_pool.create_connection(
-            remote_addr=neighbour_data.hpn_clients_addr._property,
+            remote_addr=neighbour_data['hpn_clients_addr'],
             transport=self.transport,
         )
-        neighbour_connection.set_pub_key(neighbour_data.hpn_clients_pub_key)
+        neighbour_connection.set_pub_key(neighbour_data['hpn_clients_pub_key'])
         neighbour_connection.set_encrypt_marker(settings.request_encrypted_protocol)
         neighbour_connection.type = 'client'
         return neighbour_connection
@@ -90,26 +98,26 @@ class ClientHandler(Handler):
     def get_hpn_servers_list(self, **kwargs):
         hpn_servers_list = []
         parser = self.parser()
-        hpn_servers_list_max_length = parser.protocol.lists.hpn_servers_list.length.max
+        hpn_servers_list_max_length = parser.protocol['list']['hpn_servers_list']['length']['max']
         servers_data = Peers().get_servers_list(hpn_servers_list_max_length)
         for server_data in servers_data:
-            hpn_servers_list.append(self.pack_server(JObj(server_data)))
+            hpn_servers_list.append(self.pack_server(server_data))
         return hpn_servers_list
 
     def pack_server(self, server_data):
-        server_data_structure = self.parser().protocol.lists.hpn_servers_list.structure
+        server_data_structure = self.parser().protocol['list']['hpn_servers_list']['structure']
         return self.make_message_by_structure(
             structure=server_data_structure,
             server_data=server_data)
 
     def get_hpn_servers_pub_key(self, **kwargs):
-        return kwargs['server_data'].pub_key
+        return kwargs['server_data']['pub_key']
 
     def get_hpn_servers_protocol(self, **kwargs):
-        return kwargs['server_data'].protocol
+        return kwargs['server_data']['protocol']
 
     def get_hpn_servers_addr(self, **kwargs):
-        return kwargs['server_data'].host, kwargs['server_data'].port
+        return kwargs['server_data']['host'], kwargs['server_data']['port']
 
     def get_encrypted_request_marker(self, **kwargs):
         return 1 if settings.request_encrypted_protocol else 0
@@ -118,7 +126,7 @@ class ClientHandler(Handler):
         return self.crypt_tools.get_pub_key()
 
     def save_hpn_servers_list(self, request):
-        hpn_servers_list = request.unpack_message.hpn_servers_list._property
+        hpn_servers_list = request.unpack_message['hpn_servers_list']
         Peers().save_servers_list(hpn_servers_list)
 
     def __has_enough_client_connections(self):

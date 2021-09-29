@@ -12,7 +12,7 @@ from host import Host
 from protocol import PROTOCOL
 from peers import Peers
 from datagram import Datagram
-from utilit import update_obj, JObj, Stream
+from utilit import update_obj, Stream
 from client_handler import ClientHandler
 from client_net_pool import ClientNetPool
 
@@ -79,7 +79,7 @@ class Client(Host):
     def __udp_neighbour_client_request_to_server(self, server_data):
         server_connection = self.__make_server_connection(server_data)
         request = Datagram(connection=server_connection)
-        request.set_package_protocol(JObj({'response': 'hpn_neighbours_client_request'}))
+        request.set_package_protocol({'response': 'hpn_neighbours_client_request'})
         Stream().run_stream(target=self.handler().hpn_neighbours_client_request, request=request)
 
     def __make_server_connection(self, server_data):

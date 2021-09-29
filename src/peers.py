@@ -8,15 +8,23 @@ __version__ = [0, 0]
 
 import json
 import random
-from datetime import timedelta
+from datetime import timedelta, datetime
 from cryptotool import B58
-from utilit import Singleton, str_to_datetime, now
+from utilit import Singleton, now
 import settings
+from settings import logger
 
 
 class Peers(Singleton):
     def __init__(self):
         self.__load()
+
+    def add_client_peer(self, client_connection):
+        # TODO save only peer with ports < settings.host_max_user_port
+        client = {
+            'type': 'client',
+                  }
+        # TODO
 
     def save_servers_list(self, servers_list):
         mapping_list = [
@@ -30,46 +38,59 @@ class Peers(Singleton):
             host, port = server_src['hpn_servers_addr']
             server_dst['host'] = host
             server_dst['port'] = port
-            if self.__has_server_in_list(server_dst):
+            print(server_dst)
+            if self.__has_peer_in_list(server_dst):
+                logger.info('server {host}:{port} already in peers list'.format_map(server_dst))
                 continue
+            logger.info('server {host}:{port} added in peers list'.format_map(server_dst))
             self.__peers.append(server_dst)
         self.__save()
 
-    def __has_server_in_list(self, new_server):
-        for server in self.__peers:
-            for key, value in server.items():
-                if new_server.get(key) != value:
-                    continue
-                return True
-        return False
+    def update_peer_last_response_field(self, connection):
+        server = {
+            'protocol': 'udp',
+            'type': 'server',
+            'pub_key': connection.get_pub_key(),
+        }
+        server['host'], server['port'] = connection.get_remote_addr()
+        peer = self.__find_peer(server)
+        peer['last_response'] = now()
+        self.__save()
+
+    def __has_peer_in_list(self, peer):
+        peer = self.__find_peer(peer)
+        return False if peer is None else True
 
     def get_random_server_from_file(self):
         servers = self.__filter_peers_by_type('server')
-        if not servers:
+        if len(servers) == 0:
             return None
-        servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
+        filtered_servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
+        if len(filtered_servers) > 0:
+            return random.choice(filtered_servers)
         return random.choice(servers)
 
-    def __find_peer(self, filter_kwargs):
+    def __find_peer(self, peer_data):
         for peer in self.__peers:
-            for key, val in filter_kwargs.items():
-                if peer.get(key) != val:
+            for key in ['host', 'port', 'pub_key', 'type']:
+                if peer.get(key) != peer_data.get(key):
                     continue
             return peer
+        return None
 
     def get_servers_list(self, max):
         servers = self.__filter_peers_by_type('server')
-        if not servers:
-            return None
-        servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
+        if len(servers) > 0:
+            servers = self.__filter_peers_by_last_response_field(servers=servers, days_delta=settings.servers_timeout_days)
         return servers[: max]
 
     def __filter_peers_by_last_response_field(self, servers, days_delta):
-        # TODO last_response field is not updated
         filtered_list = []
         for peer in servers:
             datatime_string = peer.get('last_response')
-            if datatime_string is not None and str_to_datetime(datatime_string) + timedelta(days=days_delta) < now():
+            if datatime_string is None:
+                continue
+            if datetime.strptime(datatime_string, settings.DATA_FORMAT) + timedelta(days=days_delta) < datetime.now():
                 continue
             filtered_list.append(peer)
         return filtered_list
