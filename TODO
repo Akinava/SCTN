@@ -11,9 +11,9 @@ docker run -it sctn:v0
 docker start -i sctn_0
 
 # run client local
-python3 test/test_peer.py -p tmp/peers.json -c tmp/config1.json -s tmp/shadow1
-python3 test/test_peer.py -p tmp/peers.json -c tmp/config2.json -s tmp/shadow2
-python3 test/test_peer.py -p tmp/peers.json -c tmp/config3.json -s tmp/shadow3
+python3 test/test_peer.py -p tmp/peers1.json -c tmp/config1.json -s tmp/shadow1
+python3 test/test_peer.py -p tmp/peers2.json -c tmp/config2.json -s tmp/shadow2
+python3 test/test_peer.py -p tmp/peers3.json -c tmp/config3.json -s tmp/shadow3
 
 # run server local
 python3 src/server_host.py -c docker/config.json -s docker/shadow
@@ -85,3 +85,5 @@ check client save
 check client over docker
 check client via another net
 make swarm via client
+
+move common to lib

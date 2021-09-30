@@ -36,7 +36,6 @@ class ClientHandler(Handler):
     def __do_hpn_servers_request(self, request, receiving_connection):
         response = Datagram(receiving_connection)
         if self.__delivered_by_direct_send(request, response):
-            Peers().add_client_peer(receiving_connection)
             self.__has_enough_client_connections()
         # TODO next delivery strategy
 
@@ -65,6 +64,7 @@ class ClientHandler(Handler):
                 logger.debug('connection {} exist in net_pool'.format(receiving_connection))
                 continue
             self.run_stream(target=self.__do_hpn_servers_request, request=request, receiving_connection=receiving_connection)
+            # TODO test me Peers().update_peer_last_response_field(request.connection)
 
     def __known_connection(self, connection):
         return connection in self.net_pool.get_all_client_connections()
@@ -72,7 +72,6 @@ class ClientHandler(Handler):
     def __handle_disconnect_flag(self, request):
         if request.unpack_message['disconnect_flag']:
             self.net_pool.disconnect(request.connection)
-            Peers().update_peer_last_response_field(request.connection)
 
     def __get_neighbours_connections_from_hpn_server_response(self, request):
         neighbours_data_list = request.unpack_message['hpn_clients_list']
@@ -128,6 +127,7 @@ class ClientHandler(Handler):
     def save_hpn_servers_list(self, request):
         hpn_servers_list = request.unpack_message['hpn_servers_list']
         Peers().save_servers_list(hpn_servers_list)
+        Peers().add_client_peer(request.connection)
 
     def __has_enough_client_connections(self):
         if self.net_pool.swarm_status != 'in progress':
