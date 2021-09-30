@@ -59,12 +59,17 @@ class ClientHandler(Handler):
     def hpn_servers_request(self, request):
         self.__handle_disconnect_flag(request)
         neighbours_connections = self.__get_neighbours_connections_from_hpn_server_response(request)
+        self.__update_server_last_response_field(request)
         for receiving_connection in neighbours_connections:
             if self.__known_connection(receiving_connection):
                 logger.debug('connection {} exist in net_pool'.format(receiving_connection))
                 continue
             self.run_stream(target=self.__do_hpn_servers_request, request=request, receiving_connection=receiving_connection)
-            # TODO test me Peers().update_peer_last_response_field(request.connection)
+
+    def __update_server_last_response_field(self, request):
+        neighbours_connections = self.__get_neighbours_connections_from_hpn_server_response(request)
+        if len(neighbours_connections) > 0:
+            Peers().update_peer_last_response_field(request.connection)
 
     def __known_connection(self, connection):
         return connection in self.net_pool.get_all_client_connections()
