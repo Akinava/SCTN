@@ -74,15 +74,87 @@ docker start -i hpnc1
 # start server
 python3 src/server_host.py -c docker/config.json -s docker/shadow | tee /Users/akinava/Projects/hpn_client/logs/hpnc_server.log
 
+==============
+# AWS
+ssh ubuntu@52.59.255.252 -i main.pem
 
+python3 src/server_host.py -c docker/config.json -s docker/shadow
+python3 test/test_peer.py -p docker/peers.json -c docker/config.json -s docker/shadow
 
+sudo apt update
+sudo apt upgrade
+sudo apt install python3-pip
+echo "export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3" >> $HOME/.bashrc
+echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
+echo "export WORKON_HOME=\$HOME/Project" >> $HOME/.bashrc
+echo "source \$HOME/.local/bin/virtualenvwrapper.sh" >> $HOME/.bashrc
+pip3 install virtualenv
+pip3 install virtualenvwrapper
+source ~/.bashrc
+mkdir $HOME/Project
+cd Project
 
+git clone https://github.com/Akinava/hpn_common.git
+git clone https://github.com/Akinava/hpn_server.git
+git clone https://github.com/Akinava/hpn_client.git
+
+# route
+router1 172.31.40.144
+client1 172.31.44.234
+# set client route
+sudo ip route add default via 172.31.40.144
+# set route NAT
+sudo -s
+echo "1" > /proc/sys/net/ipv4/ip_forward
+iptables --flush
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE --random
+
+==============
 
 import traceback
 traceback.print_stack()
 
-check client over docker
-check client via another net
-make swarm via client
 
-move common to lib
+!!! check client via another net
+make swarm via client
+move hpn_common to lib
+make hpn_client as a lib
+
+
+==============
+
+apt update
+apt upgrade
+apt install iptables tcpdump net-tools
+
+docker image pull ubuntu:latest
+
+docker network create local-network
+docker run -ti --name client1 --entrypoint /bin/bash ubuntu
+docker network connect local-network client1
+
+docker network inspect local-network
+
+
+Full Cone NAT;
+iptables -t nat -A POSTROUTING -o eth1 -j SNAT --to-source "public IP"
+iptables -t nat -A PREROUTING -i eth1 -j DNAT --to-destination "private IP"
+
+Restricted Cone NAT;
+iptables -t nat -A POSTROUTING -o eth1 -p udp -j SNAT --to-source "public IP"
+iptables -t nat -A PREROUTING -i eth1 -p udp -j DNAT --to-destination "private IP"
+iptables -A INPUT -i eth1 -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i eth1 -p udp -m state --state NEW -j DROP
+
+Port Restricted Cone NAT;
+iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source "public IP"
+
+Symmetric NAT;
+echo "1" > /proc/sys/net/ipv4/ip_forward
+iptables --flush
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE --random
+iptables -A FORWARD -i eth1 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
+
+eth1 - inet
+eth0 - local
